@@ -39,7 +39,7 @@ class TaskList {
       id,
       name,
       icon.codePoint,
-      color.value,
+      color.toARGB32(),
     );
   }
 
@@ -52,7 +52,7 @@ class TaskList {
       id,
       name ?? this.name,
       icon?.codePoint ?? iconCodePoint,
-      color?.value ?? colorValue,
+      color?.toARGB32() ?? colorValue,
     );
   }
 }

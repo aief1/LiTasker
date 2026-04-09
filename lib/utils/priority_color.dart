@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
+import 'neo_brutalism.dart';
 
 Color getPriorityColor(TaskPriority priority) {
   switch (priority) {
     case TaskPriority.high:
-      return Colors.red;
+      return NeoBrutalism.pink;
     case TaskPriority.medium:
-      return Colors.orange;
+      return NeoBrutalism.yellow;
     case TaskPriority.low:
-      return Colors.green;
+      return NeoBrutalism.cyan;
     case TaskPriority.none:
-    default:
-      return Colors.grey;
+      return NeoBrutalism.muted;
   }
 }
