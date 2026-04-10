@@ -1,4 +1,4 @@
-name: newone
+﻿name: newone
 description: A new Flutter project.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -30,7 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  lucide_icons: any # 推荐安装，UI会更精致
+  lucide_icons: any # 鎺ㄨ崘瀹夎锛孶I浼氭洿绮捐嚧
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
@@ -72,8 +72,8 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   windows:
     generate: true
-    image_path: "icon.png"
-  image_path: "icon.png"# 你的图标路径
+    image_path: "lib/11a7da6ddae72513d88438305757b3ff.png"
+  image_path: "lib/11a7da6ddae72513d88438305757b3ff.png"
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -104,3 +104,4 @@ flutter_launcher_icons:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+
