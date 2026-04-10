@@ -10,9 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'package:newone/main.dart';
-import 'package:newone/models/task.dart';
-import 'package:newone/models/task_list.dart';
+import 'package:litasker/main.dart';
+import 'package:litasker/models/task.dart';
+import 'package:litasker/models/task_list.dart';
 
 void main() {
   setUpAll(() async {

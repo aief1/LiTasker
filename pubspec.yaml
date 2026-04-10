@@ -1,5 +1,5 @@
-﻿name: newone
-description: A new Flutter project.
+﻿name: litasker
+description: A local-first Flutter task manager with a neo-brutalism UI.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
