@@ -25,12 +25,15 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Container(
+      height: 82 + bottomInset,
       decoration: const BoxDecoration(
         color: NeoBrutalism.paper,
         border: Border(top: BorderSide(color: NeoBrutalism.ink, width: 2)),
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+      padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + bottomInset),
       child: Row(
         children: [
           Expanded(
@@ -70,7 +73,7 @@ class _BottomNavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        height: 48,
         decoration: selected
             ? NeoBrutalism.card(color: NeoBrutalism.yellow)
             : NeoBrutalism.flatCard(color: NeoBrutalism.paper),

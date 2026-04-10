@@ -451,6 +451,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
                             tasks: _filteredTasks,
                             taskLists: _taskLists,
                             selectedTaskId: _selectedTaskId,
+                            isMobile: isMobile,
                             onSelectTask: (id) {
                               final task =
                                   _tasks.firstWhere((item) => item.id == id);

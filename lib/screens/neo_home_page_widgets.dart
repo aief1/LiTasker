@@ -227,6 +227,7 @@ class _TaskColumn extends StatelessWidget {
     required this.tasks,
     required this.taskLists,
     required this.selectedTaskId,
+    required this.isMobile,
     required this.onSelectTask,
     required this.onToggleDone,
     required this.onMoveTask,
@@ -237,6 +238,7 @@ class _TaskColumn extends StatelessWidget {
   final List<Task> tasks;
   final List<TaskList> taskLists;
   final String? selectedTaskId;
+  final bool isMobile;
   final ValueChanged<String> onSelectTask;
   final ValueChanged<String> onToggleDone;
   final void Function(String, String?) onMoveTask;
@@ -251,11 +253,23 @@ class _TaskColumn extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: NeoBrutalism.hero),
+          Text(
+            title,
+            style: isMobile
+                ? const TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    height: 0.95,
+                    color: NeoBrutalism.ink,
+                  )
+                : NeoBrutalism.hero,
+          ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Build momentum with small wins and clear priorities.',
-            style: TextStyle(
+            maxLines: isMobile ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
                 fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2),
           ),
           const SizedBox(height: 20),
