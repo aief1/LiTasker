@@ -153,6 +153,8 @@ class _DetailPanelState extends State<_DetailPanel> {
     super.initState();
     _titleController = TextEditingController(text: widget.task.title);
     _descController = TextEditingController(text: widget.task.description);
+    _titleController.addListener(_handleTitleChanged);
+    _descController.addListener(_handleDescriptionChanged);
   }
 
   @override
@@ -160,16 +162,43 @@ class _DetailPanelState extends State<_DetailPanel> {
     super.didUpdateWidget(oldWidget);
     if (widget.task.id != oldWidget.task.id ||
         widget.task.title != oldWidget.task.title) {
-      _titleController.text = widget.task.title;
+      _syncController(_titleController, widget.task.title);
     }
     if (widget.task.id != oldWidget.task.id ||
         widget.task.description != oldWidget.task.description) {
-      _descController.text = widget.task.description;
+      _syncController(_descController, widget.task.description);
     }
+  }
+
+  void _handleTitleChanged() {
+    if (_isComposing(_titleController)) return;
+    widget.onTitleChanged(_titleController.text);
+  }
+
+  void _handleDescriptionChanged() {
+    if (_isComposing(_descController)) return;
+    widget.onDescriptionChanged(_descController.text);
+  }
+
+  bool _isComposing(TextEditingController controller) {
+    final composing = controller.value.composing;
+    return composing.isValid && !composing.isCollapsed;
+  }
+
+  void _syncController(TextEditingController controller, String value) {
+    if (controller.text == value) return;
+    if (_isComposing(controller)) return;
+    controller.value = controller.value.copyWith(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+      composing: TextRange.empty,
+    );
   }
 
   @override
   void dispose() {
+    _titleController.removeListener(_handleTitleChanged);
+    _descController.removeListener(_handleDescriptionChanged);
     _titleController.dispose();
     _descController.dispose();
     super.dispose();
@@ -197,7 +226,6 @@ class _DetailPanelState extends State<_DetailPanel> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _titleController,
-                  onChanged: widget.onTitleChanged,
                   style: const TextStyle(
                       fontSize: 28, fontWeight: FontWeight.w900),
                   decoration: const InputDecoration(border: InputBorder.none),
@@ -263,7 +291,6 @@ class _DetailPanelState extends State<_DetailPanel> {
                       ? Markdown(data: _descController.text)
                       : TextField(
                           controller: _descController,
-                          onChanged: widget.onDescriptionChanged,
                           expands: true,
                           maxLines: null,
                           decoration: const InputDecoration(
