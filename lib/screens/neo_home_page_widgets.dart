@@ -8,6 +8,8 @@ class _HeaderBar extends StatelessWidget {
     required this.onSwitchView,
     required this.isCalendar,
     required this.actionLabel,
+    required this.onSettingsPressed,
+    required this.isSettings,
   });
 
   final String title;
@@ -16,6 +18,8 @@ class _HeaderBar extends StatelessWidget {
   final VoidCallback onSwitchView;
   final bool isCalendar;
   final String actionLabel;
+  final VoidCallback onSettingsPressed;
+  final bool isSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +72,16 @@ class _HeaderBar extends StatelessWidget {
               decoration: NeoBrutalism.flatCard(
                   color: isCalendar ? NeoBrutalism.cyan : NeoBrutalism.paper),
               child: Text(actionLabel, style: NeoBrutalism.label),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onSettingsPressed,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: NeoBrutalism.flatCard(
+                  color: isSettings ? NeoBrutalism.cyan : NeoBrutalism.paper),
+              child: const Icon(Icons.settings, size: 18),
             ),
           ),
         ],

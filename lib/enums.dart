@@ -1,6 +1,6 @@
 enum SmartView { inbox, today, next7Days }
 
-enum ViewMode { focus, list, calendar }
+enum ViewMode { focus, list, calendar, settings }
 
 enum FocusTab { time, pomo, stats }
 

@@ -25,6 +25,7 @@ class _FocusPanel extends StatelessWidget {
     required this.selectedTab,
     required this.focusSubject,
     required this.statsRange,
+    required this.focusDurationMinutes,
     required this.completedSessions,
     required this.totalFocusSeconds,
     required this.todayFocusSeconds,
@@ -47,6 +48,7 @@ class _FocusPanel extends StatelessWidget {
   final FocusTab selectedTab;
   final String focusSubject;
   final FocusStatsRange statsRange;
+  final int focusDurationMinutes;
   final int completedSessions;
   final int totalFocusSeconds;
   final int todayFocusSeconds;
@@ -70,7 +72,7 @@ class _FocusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const totalSeconds = 25 * 60;
+    final totalSeconds = focusDurationMinutes * 60;
     final mode = usePomodoro ? 'POMODORO' : 'TIMER';
 
     return SingleChildScrollView(
@@ -1017,6 +1019,445 @@ class _FocusStat extends StatelessWidget {
               style:
                   const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsPanel extends StatelessWidget {
+  const _SettingsPanel({
+    required this.focusDurationMinutes,
+    required this.shortBreakMinutes,
+    required this.longBreakMinutes,
+    required this.longBreakAfterSessions,
+    required this.soundEffects,
+    required this.autoStartBreak,
+    required this.onFocusDurationChanged,
+    required this.onShortBreakChanged,
+    required this.onLongBreakChanged,
+    required this.onLongBreakAfterChanged,
+    required this.onSoundEffectsChanged,
+    required this.onAutoStartBreakChanged,
+    required this.onExport,
+    required this.onImport,
+    required this.onClearData,
+  });
+
+  final int focusDurationMinutes;
+  final int shortBreakMinutes;
+  final int longBreakMinutes;
+  final int longBreakAfterSessions;
+  final bool soundEffects;
+  final bool autoStartBreak;
+  final ValueChanged<int> onFocusDurationChanged;
+  final ValueChanged<int> onShortBreakChanged;
+  final ValueChanged<int> onLongBreakChanged;
+  final ValueChanged<int> onLongBreakAfterChanged;
+  final ValueChanged<bool> onSoundEffectsChanged;
+  final ValueChanged<bool> onAutoStartBreakChanged;
+  final VoidCallback onExport;
+  final VoidCallback onImport;
+  final VoidCallback onClearData;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SettingsSection(
+                index: '01',
+                title: 'FOCUS TIMER',
+                children: [
+                  _StepperSetting(
+                    label: 'Focus duration',
+                    value: focusDurationMinutes,
+                    suffix: 'MIN',
+                    min: 5,
+                    max: 120,
+                    step: 5,
+                    onChanged: onFocusDurationChanged,
+                  ),
+                  _StepperSetting(
+                    label: 'Short break duration',
+                    value: shortBreakMinutes,
+                    suffix: 'MIN',
+                    min: 1,
+                    max: 60,
+                    step: 1,
+                    onChanged: onShortBreakChanged,
+                  ),
+                  _StepperSetting(
+                    label: 'Long break duration',
+                    value: longBreakMinutes,
+                    suffix: 'MIN',
+                    min: 1,
+                    max: 120,
+                    step: 5,
+                    onChanged: onLongBreakChanged,
+                  ),
+                  _StepperSetting(
+                    label: 'Long break after',
+                    value: longBreakAfterSessions,
+                    suffix: 'SESS',
+                    min: 1,
+                    max: 12,
+                    step: 1,
+                    onChanged: onLongBreakAfterChanged,
+                  ),
+                  _ToggleSetting(
+                    label: 'Sound effects',
+                    icon: Icons.volume_up,
+                    value: soundEffects,
+                    onChanged: onSoundEffectsChanged,
+                  ),
+                  _ToggleSetting(
+                    label: 'Auto-start break',
+                    icon: Icons.play_arrow,
+                    value: autoStartBreak,
+                    onChanged: onAutoStartBreakChanged,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              const _SettingsSection(
+                index: '02',
+                title: 'TASK SYSTEM',
+                children: [
+                  _SettingsInfoRow(label: 'Default start page', value: 'FOCUS'),
+                  _SettingsInfoRow(label: 'Default task date', value: 'TODAY'),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _SettingsSection(
+                index: '03',
+                title: 'DATA ASSETS',
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SettingsActionCard(
+                          label: 'Import backup',
+                          icon: Icons.cloud_download,
+                          onTap: onImport,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _SettingsActionCard(
+                          label: 'Export backup',
+                          icon: Icons.cloud_upload,
+                          color: NeoBrutalism.yellow,
+                          onTap: onExport,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _SettingsSection(
+                index: '!!',
+                title: 'DANGER ZONE',
+                markerColor: NeoBrutalism.pink,
+                children: [
+                  GestureDetector(
+                    onTap: onClearData,
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: NeoBrutalism.paper,
+                        border: Border.all(
+                          color: NeoBrutalism.pink,
+                          width: NeoBrutalism.borderWidth,
+                          style: BorderStyle.solid,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(18),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning, color: NeoBrutalism.ink),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text('CLEAR ALL LOCAL DATA',
+                                style: NeoBrutalism.label),
+                          ),
+                          const Icon(Icons.delete_forever,
+                              color: NeoBrutalism.ink),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'This action deletes tasks, lists, focus stats, and settings on this device.',
+                    style: NeoBrutalism.label.copyWith(
+                      color: NeoBrutalism.ink.withValues(alpha: 0.65),
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({
+    required this.index,
+    required this.title,
+    required this.children,
+    this.markerColor = NeoBrutalism.yellow,
+  });
+
+  final String index;
+  final String title;
+  final List<Widget> children;
+  final Color markerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              decoration: NeoBrutalism.flatCard(color: markerColor),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(index, style: NeoBrutalism.label),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                fontStyle: FontStyle.italic,
+                letterSpacing: -0.8,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Container(
+          decoration: const BoxDecoration(
+            border: Border(
+              left: BorderSide(color: NeoBrutalism.ink, width: 2),
+            ),
+          ),
+          padding: const EdgeInsets.only(left: 16),
+          child: Column(children: children),
+        ),
+      ],
+    );
+  }
+}
+
+class _StepperSetting extends StatelessWidget {
+  const _StepperSetting({
+    required this.label,
+    required this.value,
+    required this.suffix,
+    required this.min,
+    required this.max,
+    required this.step,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final String suffix;
+  final int min;
+  final int max;
+  final int step;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsRow(
+      label: label,
+      trailing: Container(
+        decoration: NeoBrutalism.card(color: NeoBrutalism.paper),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _StepperButton(
+              icon: Icons.remove,
+              onTap: value <= min ? null : () => onChanged(value - step),
+            ),
+            Container(
+              width: 70,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                '$value',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
+            ),
+            _StepperButton(
+              icon: Icons.add,
+              onTap: value >= max ? null : () => onChanged(value + step),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: Text(suffix, style: NeoBrutalism.label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StepperButton extends StatelessWidget {
+  const _StepperButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? 0.35 : 1,
+        child: Container(
+          width: 40,
+          height: 42,
+          decoration: const BoxDecoration(
+            border: Border(
+              right: BorderSide(color: NeoBrutalism.ink, width: 2),
+            ),
+          ),
+          child: Icon(icon, size: 18),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToggleSetting extends StatelessWidget {
+  const _ToggleSetting({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsRow(
+      label: label,
+      leading: Icon(icon, color: NeoBrutalism.ink),
+      trailing: GestureDetector(
+        onTap: () => onChanged(!value),
+        child: Container(
+          width: 52,
+          height: 28,
+          decoration: NeoBrutalism.flatCard(
+            color: value ? NeoBrutalism.yellow : NeoBrutalism.muted,
+          ),
+          padding: const EdgeInsets.all(3),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(width: 18, height: 18, color: NeoBrutalism.ink),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsInfoRow extends StatelessWidget {
+  const _SettingsInfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsRow(
+      label: label,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(value, style: NeoBrutalism.label),
+          const SizedBox(width: 6),
+          const Icon(Icons.chevron_right, size: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.label,
+    required this.trailing,
+    this.leading,
+  });
+
+  final String label;
+  final Widget? leading;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          if (leading != null) ...[leading!, const SizedBox(width: 12)],
+          Expanded(child: Text(label.toUpperCase(), style: NeoBrutalism.label)),
+          const SizedBox(width: 14),
+          trailing,
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsActionCard extends StatelessWidget {
+  const _SettingsActionCard({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.color = NeoBrutalism.paper,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: NeoBrutalism.card(color: color),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 34, color: NeoBrutalism.ink),
+            const SizedBox(height: 18),
+            Text(label.toUpperCase(), style: NeoBrutalism.label),
+          ],
+        ),
       ),
     );
   }

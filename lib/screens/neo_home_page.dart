@@ -30,6 +30,12 @@ class _NeoHomePageState extends State<NeoHomePage> {
   static const _focusCompletedSessionsKey = 'focus_completed_sessions';
   static const _focusUnassignedListKey = 'focus_list_unassigned';
   static const _focusCurrentSubjectKey = 'focus_current_subject';
+  static const _settingFocusDurationKey = 'setting_focus_duration_minutes';
+  static const _settingShortBreakKey = 'setting_short_break_minutes';
+  static const _settingLongBreakKey = 'setting_long_break_minutes';
+  static const _settingLongBreakAfterKey = 'setting_long_break_after_sessions';
+  static const _settingSoundEffectsKey = 'setting_sound_effects';
+  static const _settingAutoStartBreakKey = 'setting_auto_start_break';
 
   late final Box<Task> _taskBox;
   late final Box<TaskList> _listBox;
@@ -42,6 +48,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   String? _selectedListId;
   bool _showCompleted = false;
   ViewMode _viewMode = ViewMode.focus;
+  ViewMode _settingsReturnView = ViewMode.focus;
   DateTime _selectedDate = DateTime.now();
   CalendarViewMode _calendarViewMode = CalendarViewMode.month;
   bool _fabPressed = false;
@@ -53,8 +60,16 @@ class _NeoHomePageState extends State<NeoHomePage> {
   FocusStatsRange _focusStatsRange = FocusStatsRange.week;
   DateTime _focusStatsAnchorDate = DateTime.now();
   String _focusSubject = 'Focus';
+  int _focusDurationMinutes = 25;
+  int _shortBreakMinutes = 5;
+  int _longBreakMinutes = 15;
+  int _longBreakAfterSessions = 4;
+  bool _soundEffects = true;
+  bool _autoStartBreak = false;
   int _completedFocusSessions = 0;
   Timer? _focusTimer;
+
+  Duration get _pomodoroDuration => Duration(minutes: _focusDurationMinutes);
 
   @override
   void initState() {
@@ -104,6 +119,18 @@ class _NeoHomePageState extends State<NeoHomePage> {
     if (savedSubject is String && savedSubject.trim().isNotEmpty) {
       _focusSubject = savedSubject.trim();
     }
+    _focusDurationMinutes = _readSettingInt(
+      _settingFocusDurationKey,
+      fallback: 25,
+    );
+    _shortBreakMinutes = _readSettingInt(_settingShortBreakKey, fallback: 5);
+    _longBreakMinutes = _readSettingInt(_settingLongBreakKey, fallback: 15);
+    _longBreakAfterSessions =
+        _readSettingInt(_settingLongBreakAfterKey, fallback: 4);
+    _soundEffects = _readSettingBool(_settingSoundEffectsKey, fallback: true);
+    _autoStartBreak =
+        _readSettingBool(_settingAutoStartBreakKey, fallback: false);
+    _pomodoroRemaining = _pomodoroDuration;
     setState(() {});
   }
 
@@ -142,11 +169,17 @@ class _NeoHomePageState extends State<NeoHomePage> {
     return '${_focusDayKey(value)}_subject_${Uri.encodeComponent(subject.trim())}';
   }
 
-  int _readSettingInt(String key) {
-    final value = _settingsBox.get(key, defaultValue: 0);
+  int _readSettingInt(String key, {int fallback = 0}) {
+    final value = _settingsBox.get(key, defaultValue: fallback);
     if (value is int) return value;
     if (value is num) return value.toInt();
-    return 0;
+    return fallback;
+  }
+
+  bool _readSettingBool(String key, {required bool fallback}) {
+    final value = _settingsBox.get(key, defaultValue: fallback);
+    if (value is bool) return value;
+    return fallback;
   }
 
   void _writeSettingInt(String key, int value) {
@@ -330,6 +363,52 @@ class _NeoHomePageState extends State<NeoHomePage> {
     });
   }
 
+  void _updateFocusDuration(int value) {
+    final minutes = value.clamp(5, 120);
+    setState(() {
+      _focusDurationMinutes = minutes;
+      if (!_focusRunning) _pomodoroRemaining = _pomodoroDuration;
+    });
+    _writeSettingInt(_settingFocusDurationKey, minutes);
+  }
+
+  void _updateShortBreak(int value) {
+    final minutes = value.clamp(1, 60);
+    setState(() => _shortBreakMinutes = minutes);
+    _writeSettingInt(_settingShortBreakKey, minutes);
+  }
+
+  void _updateLongBreak(int value) {
+    final minutes = value.clamp(1, 120);
+    setState(() => _longBreakMinutes = minutes);
+    _writeSettingInt(_settingLongBreakKey, minutes);
+  }
+
+  void _updateLongBreakAfter(int value) {
+    final sessions = value.clamp(1, 12);
+    setState(() => _longBreakAfterSessions = sessions);
+    _writeSettingInt(_settingLongBreakAfterKey, sessions);
+  }
+
+  void _updateSoundEffects(bool value) {
+    setState(() => _soundEffects = value);
+    unawaited(_settingsBox.put(_settingSoundEffectsKey, value));
+  }
+
+  void _updateAutoStartBreak(bool value) {
+    setState(() => _autoStartBreak = value);
+    unawaited(_settingsBox.put(_settingAutoStartBreakKey, value));
+  }
+
+  void _openSettings() {
+    if (_viewMode != ViewMode.settings) _settingsReturnView = _viewMode;
+    setState(() => _viewMode = ViewMode.settings);
+  }
+
+  void _closeSettings() {
+    setState(() => _viewMode = _settingsReturnView);
+  }
+
   List<Task> get _filteredTasks {
     final now = _dateOnly(DateTime.now());
     final end = now.add(const Duration(days: 7));
@@ -480,7 +559,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
             _recordFocusSecond();
             _recordFocusSession();
             _focusRunning = false;
-            _pomodoroRemaining = const Duration(minutes: 25);
+            _pomodoroRemaining = _pomodoroDuration;
           });
           _focusTimer?.cancel();
           return;
@@ -506,21 +585,21 @@ class _NeoHomePageState extends State<NeoHomePage> {
       if (!_focusRunning && tab != FocusTab.stats) {
         _usePomodoro = tab == FocusTab.pomo;
         _focusElapsed = Duration.zero;
-        _pomodoroRemaining = const Duration(minutes: 25);
+        _pomodoroRemaining = _pomodoroDuration;
       }
     });
   }
 
   void _endFocusSession() {
     final hadProgress = _usePomodoro
-        ? _pomodoroRemaining < const Duration(minutes: 25)
+        ? _pomodoroRemaining < _pomodoroDuration
         : _focusElapsed > Duration.zero;
     _focusTimer?.cancel();
     setState(() {
       if (hadProgress) _recordFocusSession();
       _focusRunning = false;
       _focusElapsed = Duration.zero;
-      _pomodoroRemaining = const Duration(minutes: 25);
+      _pomodoroRemaining = _pomodoroDuration;
     });
   }
 
@@ -550,6 +629,15 @@ class _NeoHomePageState extends State<NeoHomePage> {
               entry.value is num;
         }).map((entry) {
           return MapEntry(entry.key as String, (entry.value as num).toInt());
+        }),
+      ),
+      'settings': Map<String, dynamic>.fromEntries(
+        _settingsBox.toMap().entries.where((entry) {
+          return entry.key is String &&
+              (entry.key as String).startsWith('setting_') &&
+              (entry.value is num || entry.value is bool);
+        }).map((entry) {
+          return MapEntry(entry.key as String, entry.value);
         }),
       ),
     };
@@ -608,6 +696,79 @@ class _NeoHomePageState extends State<NeoHomePage> {
       }
     }
 
+    final settings = data['settings'];
+    if (settings is Map<String, dynamic>) {
+      final settingKeys = _settingsBox.keys
+          .where((key) => key is String && key.startsWith('setting_'))
+          .toList();
+      for (final key in settingKeys) {
+        await _settingsBox.delete(key);
+      }
+      for (final entry in settings.entries) {
+        final value = entry.value;
+        if (value is num || value is bool) {
+          await _settingsBox.put(entry.key, value);
+        }
+      }
+    }
+
+    _loadData();
+  }
+
+  Future<void> _clearAllLocalData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: NeoBrutalism.paper,
+          title: const Text('Clear all local data?'),
+          content: const Text(
+            'This will delete tasks, lists, focus stats, and settings on this device.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
+    _focusTimer?.cancel();
+    await _taskBox.clear();
+    await _listBox.clear();
+    await _settingsBox.clear();
+    setState(() {
+      _tasks = [];
+      _taskLists = [];
+      _selectedTaskId = null;
+      _selectedSmartView = SmartView.today;
+      _selectedListId = null;
+      _showCompleted = false;
+      _viewMode = ViewMode.focus;
+      _settingsReturnView = ViewMode.focus;
+      _focusElapsed = Duration.zero;
+      _pomodoroRemaining = const Duration(minutes: 25);
+      _focusRunning = false;
+      _usePomodoro = false;
+      _focusTab = FocusTab.time;
+      _focusStatsRange = FocusStatsRange.week;
+      _focusStatsAnchorDate = DateTime.now();
+      _focusSubject = 'Focus';
+      _focusDurationMinutes = 25;
+      _shortBreakMinutes = 5;
+      _longBreakMinutes = 15;
+      _longBreakAfterSessions = 4;
+      _soundEffects = true;
+      _autoStartBreak = false;
+      _completedFocusSessions = 0;
+    });
     _loadData();
   }
 
@@ -670,6 +831,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   }
 
   String _headerTitle() {
+    if (_viewMode == ViewMode.settings) return 'System Settings';
     if (_viewMode == ViewMode.focus) return 'Focus';
     if (_viewMode == ViewMode.calendar) return 'Calendar';
     if (_showCompleted) return 'Completed';
@@ -704,6 +866,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
       ViewMode.focus => 'TASKS',
       ViewMode.list => 'CALENDAR',
       ViewMode.calendar => 'LIST',
+      ViewMode.settings => 'BACK',
     };
 
     return Scaffold(
@@ -739,23 +902,30 @@ class _NeoHomePageState extends State<NeoHomePage> {
                 onMenuPressed:
                     isMobile ? () => Scaffold.of(context).openDrawer() : null,
                 onSwitchView: () {
+                  if (_viewMode == ViewMode.settings) {
+                    _closeSettings();
+                    return;
+                  }
                   setState(() {
                     _viewMode = switch (_viewMode) {
                       ViewMode.focus => ViewMode.list,
                       ViewMode.list => ViewMode.calendar,
                       ViewMode.calendar => ViewMode.list,
+                      ViewMode.settings => _settingsReturnView,
                     };
                   });
                 },
                 isCalendar: _viewMode == ViewMode.calendar,
                 actionLabel: headerActionLabel,
+                onSettingsPressed: _openSettings,
+                isSettings: _viewMode == ViewMode.settings,
               ),
             ),
             Expanded(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (!isMobile)
+                  if (!isMobile && _viewMode != ViewMode.settings)
                     SizedBox(
                       width: 284,
                       child: _SidebarPanel(
@@ -776,7 +946,8 @@ class _NeoHomePageState extends State<NeoHomePage> {
                         onImport: _importData,
                       ),
                     ),
-                  if (!isMobile) Container(width: 2, color: NeoBrutalism.ink),
+                  if (!isMobile && _viewMode != ViewMode.settings)
+                    Container(width: 2, color: NeoBrutalism.ink),
                   Expanded(
                     child: _viewMode == ViewMode.focus
                         ? _FocusPanel(
@@ -788,6 +959,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
                             selectedTab: _focusTab,
                             focusSubject: _focusSubject,
                             statsRange: _focusStatsRange,
+                            focusDurationMinutes: _focusDurationMinutes,
                             completedSessions: _completedFocusSessions,
                             totalFocusSeconds: _focusTotalSeconds,
                             todayFocusSeconds: _focusTodaySeconds,
@@ -806,44 +978,63 @@ class _NeoHomePageState extends State<NeoHomePage> {
                                 ? () => _shiftFocusStatsRange(1)
                                 : null,
                           )
-                        : _viewMode == ViewMode.list
-                            ? _TaskColumn(
-                                title: title,
-                                tasks: _filteredTasks,
-                                taskLists: _taskLists,
-                                selectedTaskId: _selectedTaskId,
-                                isMobile: isMobile,
-                                onSelectTask: (id) {
-                                  final task = _tasks
-                                      .firstWhere((item) => item.id == id);
-                                  _openTaskDetails(task, isMobile: isMobile);
-                                },
-                                onToggleDone: _toggleDone,
-                                onMoveTask: _moveTaskTo,
-                                onDeleteTask: _deleteTask,
+                        : _viewMode == ViewMode.settings
+                            ? _SettingsPanel(
+                                focusDurationMinutes: _focusDurationMinutes,
+                                shortBreakMinutes: _shortBreakMinutes,
+                                longBreakMinutes: _longBreakMinutes,
+                                longBreakAfterSessions: _longBreakAfterSessions,
+                                soundEffects: _soundEffects,
+                                autoStartBreak: _autoStartBreak,
+                                onFocusDurationChanged: _updateFocusDuration,
+                                onShortBreakChanged: _updateShortBreak,
+                                onLongBreakChanged: _updateLongBreak,
+                                onLongBreakAfterChanged: _updateLongBreakAfter,
+                                onSoundEffectsChanged: _updateSoundEffects,
+                                onAutoStartBreakChanged: _updateAutoStartBreak,
+                                onExport: _exportData,
+                                onImport: _importData,
+                                onClearData: _clearAllLocalData,
                               )
-                            : _CalendarPanel(
-                                selectedDate: _selectedDate,
-                                tasks: _tasks,
-                                mode: _calendarViewMode,
-                                isMobile: isMobile,
-                                onModeChanged: (mode) =>
-                                    setState(() => _calendarViewMode = mode),
-                                onDateSelected: (date) =>
-                                    setState(() => _selectedDate = date),
-                                onTaskSelected: (id) {
-                                  final task = _tasks
-                                      .firstWhere((item) => item.id == id);
-                                  if (isMobile) {
-                                    _openTaskDetails(task, isMobile: true);
-                                  } else {
-                                    setState(() {
-                                      _selectedTaskId = id;
-                                      _viewMode = ViewMode.list;
-                                    });
-                                  }
-                                },
-                              ),
+                            : _viewMode == ViewMode.list
+                                ? _TaskColumn(
+                                    title: title,
+                                    tasks: _filteredTasks,
+                                    taskLists: _taskLists,
+                                    selectedTaskId: _selectedTaskId,
+                                    isMobile: isMobile,
+                                    onSelectTask: (id) {
+                                      final task = _tasks
+                                          .firstWhere((item) => item.id == id);
+                                      _openTaskDetails(task,
+                                          isMobile: isMobile);
+                                    },
+                                    onToggleDone: _toggleDone,
+                                    onMoveTask: _moveTaskTo,
+                                    onDeleteTask: _deleteTask,
+                                  )
+                                : _CalendarPanel(
+                                    selectedDate: _selectedDate,
+                                    tasks: _tasks,
+                                    mode: _calendarViewMode,
+                                    isMobile: isMobile,
+                                    onModeChanged: (mode) => setState(
+                                        () => _calendarViewMode = mode),
+                                    onDateSelected: (date) =>
+                                        setState(() => _selectedDate = date),
+                                    onTaskSelected: (id) {
+                                      final task = _tasks
+                                          .firstWhere((item) => item.id == id);
+                                      if (isMobile) {
+                                        _openTaskDetails(task, isMobile: true);
+                                      } else {
+                                        setState(() {
+                                          _selectedTaskId = id;
+                                          _viewMode = ViewMode.list;
+                                        });
+                                      }
+                                    },
+                                  ),
                   ),
                   if (isDesktop &&
                       _viewMode == ViewMode.list &&
