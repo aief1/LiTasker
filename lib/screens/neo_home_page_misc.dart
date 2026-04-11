@@ -114,17 +114,16 @@ class _FocusPanel extends StatelessWidget {
               children: [
                 _FocusActionButton(
                   label: 'START',
-                  icon: Icons.play_arrow,
-                  color: NeoBrutalism.paper,
+                  icon: isRunning ? Icons.timer : Icons.play_arrow,
                   onTap: onToggleTimer,
+                  isActive: isRunning,
                 ),
                 const SizedBox(height: 20),
                 _FocusActionButton(
                   label: 'END\nSESSION',
-                  icon: Icons.stop,
-                  color: NeoBrutalism.yellow,
+                  icon: isRunning ? Icons.stop_outlined : Icons.stop,
                   onTap: onEndSession,
-                  isTall: true,
+                  isActive: !isRunning,
                 ),
               ],
             ),
@@ -259,41 +258,56 @@ class _FocusActionButton extends StatelessWidget {
   const _FocusActionButton({
     required this.label,
     required this.icon,
-    required this.color,
     required this.onTap,
-    this.isTall = false,
+    required this.isActive,
   });
 
   final String label;
   final IconData icon;
-  final Color color;
   final VoidCallback onTap;
-  final bool isTall;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
+    final color = isActive ? NeoBrutalism.yellow : NeoBrutalism.paper;
+    final decoration = isActive
+        ? NeoBrutalism.card(color: color)
+        : NeoBrutalism.flatCard(color: color);
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        height: isTall ? 78 : 58,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        height: isActive ? 84 : 56,
         width: double.infinity,
-        decoration: NeoBrutalism.card(color: color),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: NeoBrutalism.ink),
-            const SizedBox(width: 20),
-            Text(
-              label,
-              textAlign: TextAlign.left,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2.8,
-                height: 1.25,
+        decoration: decoration,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          style: TextStyle(
+            fontSize: isActive ? 16 : 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: isActive ? 2.7 : 2.0,
+            height: 1.22,
+            color: NeoBrutalism.ink,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 160),
+                child: Icon(
+                  icon,
+                  key: ValueKey<IconData>(icon),
+                  size: isActive ? 24 : 18,
+                  color: NeoBrutalism.ink,
+                ),
               ),
-            ),
-          ],
+              SizedBox(width: isActive ? 20 : 16),
+              Text(label, textAlign: TextAlign.left),
+            ],
+          ),
         ),
       ),
     );
