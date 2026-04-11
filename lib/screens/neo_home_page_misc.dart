@@ -45,11 +45,6 @@ class _FocusPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const totalSeconds = 25 * 60;
-    final progress = usePomodoro
-        ? ((totalSeconds - displayTime.inSeconds) / totalSeconds)
-            .clamp(0.0, 1.0)
-        : ((displayTime.inSeconds % totalSeconds) / totalSeconds)
-            .clamp(0.0, 1.0);
     final mode = usePomodoro ? 'POMODORO' : 'TIMER';
 
     return SingleChildScrollView(
@@ -88,15 +83,10 @@ class _FocusPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Container(
-            height: 18,
-            width: double.infinity,
-            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: progress,
-              child: Container(color: NeoBrutalism.yellow),
-            ),
+          _FocusProgressBar(
+            displayTime: displayTime,
+            usePomodoro: usePomodoro,
+            totalPomodoroSeconds: totalSeconds,
           ),
           const SizedBox(height: 34),
           SizedBox(
@@ -137,6 +127,82 @@ class _FocusPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FocusProgressBar extends StatelessWidget {
+  const _FocusProgressBar({
+    required this.displayTime,
+    required this.usePomodoro,
+    required this.totalPomodoroSeconds,
+  });
+
+  final Duration displayTime;
+  final bool usePomodoro;
+  final int totalPomodoroSeconds;
+
+  String _durationLabel(Duration value) {
+    final safeValue = value.isNegative ? Duration.zero : value;
+    final hours = safeValue.inHours;
+    final minutes = (safeValue.inMinutes % 60).toString().padLeft(2, '0');
+    if (hours > 0) return '$hours:$minutes';
+    final seconds = (safeValue.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final dayElapsed = Duration(
+      hours: now.hour,
+      minutes: now.minute,
+      seconds: now.second,
+    );
+    const dayTotal = Duration(hours: 24);
+    final pomodoroElapsed =
+        Duration(seconds: totalPomodoroSeconds) - displayTime;
+    final elapsed = usePomodoro ? pomodoroElapsed : dayElapsed;
+    final remaining = usePomodoro ? displayTime : dayTotal - dayElapsed;
+    final totalSeconds =
+        usePomodoro ? totalPomodoroSeconds : dayTotal.inSeconds;
+    final progress = (elapsed.inSeconds / totalSeconds).clamp(0.0, 1.0);
+
+    return Column(
+      children: [
+        Container(
+          height: 24,
+          width: double.infinity,
+          decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+          alignment: Alignment.centerLeft,
+          child: ClipRect(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: progress),
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, child) {
+                return FractionallySizedBox(
+                  widthFactor: value,
+                  heightFactor: 1,
+                  alignment: Alignment.centerLeft,
+                  child: child,
+                );
+              },
+              child: Container(color: NeoBrutalism.yellow),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('ELAPSED: ${_durationLabel(elapsed)}',
+                style: NeoBrutalism.label),
+            Text('REMAINING: ${_durationLabel(remaining)}',
+                style: NeoBrutalism.label),
+          ],
+        ),
+      ],
     );
   }
 }
