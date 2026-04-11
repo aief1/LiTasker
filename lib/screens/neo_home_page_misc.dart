@@ -23,32 +23,40 @@ class _FocusPanel extends StatelessWidget {
     required this.isRunning,
     required this.usePomodoro,
     required this.selectedTab,
+    required this.focusSubject,
+    required this.statsRange,
     required this.completedSessions,
     required this.totalFocusSeconds,
     required this.todayFocusSeconds,
     required this.weekFocusSeconds,
-    required this.allDaySeconds,
+    required this.chartSeconds,
     required this.statsRangeLabel,
     required this.distributionItems,
     required this.onToggleTimer,
     required this.onEndSession,
     required this.onTabChanged,
+    required this.onSubjectChanged,
+    required this.onStatsRangeChanged,
   });
 
   final Duration displayTime;
   final bool isRunning;
   final bool usePomodoro;
   final FocusTab selectedTab;
+  final String focusSubject;
+  final FocusStatsRange statsRange;
   final int completedSessions;
   final int totalFocusSeconds;
   final int todayFocusSeconds;
   final int weekFocusSeconds;
-  final List<int> allDaySeconds;
+  final List<int> chartSeconds;
   final String statsRangeLabel;
   final List<_FocusDistributionItem> distributionItems;
   final VoidCallback onToggleTimer;
   final VoidCallback onEndSession;
   final ValueChanged<FocusTab> onTabChanged;
+  final ValueChanged<String> onSubjectChanged;
+  final ValueChanged<FocusStatsRange> onStatsRangeChanged;
 
   String _durationLabel(Duration value) {
     final minutes = value.inMinutes.toString().padLeft(2, '0');
@@ -82,11 +90,19 @@ class _FocusPanel extends StatelessWidget {
               weekSeconds: weekFocusSeconds,
               sessions: completedSessions,
               mode: usePomodoro ? 'POMO' : 'TIME',
-              allDaySeconds: allDaySeconds,
+              statsRange: statsRange,
+              chartSeconds: chartSeconds,
               rangeLabel: statsRangeLabel,
               distributionItems: distributionItems,
+              onRangeChanged: onStatsRangeChanged,
             )
           else ...[
+            _FocusSubjectField(
+              value: focusSubject,
+              enabled: !isRunning,
+              onChanged: onSubjectChanged,
+            ),
+            const SizedBox(height: 16),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 50),
@@ -214,6 +230,75 @@ class _FocusProgressBar extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _FocusSubjectField extends StatefulWidget {
+  const _FocusSubjectField({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String value;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_FocusSubjectField> createState() => _FocusSubjectFieldState();
+}
+
+class _FocusSubjectFieldState extends State<_FocusSubjectField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant _FocusSubjectField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value && widget.value != _controller.text) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('FOCUS NAME', style: NeoBrutalism.label),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _controller,
+            enabled: widget.enabled,
+            onChanged: widget.onChanged,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: NeoBrutalism.ink,
+            ),
+            decoration: const InputDecoration(
+              isDense: true,
+              border: InputBorder.none,
+              hintText: 'Math / English / Study',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -363,9 +448,11 @@ class _FocusStatsPanel extends StatelessWidget {
     required this.weekSeconds,
     required this.sessions,
     required this.mode,
-    required this.allDaySeconds,
+    required this.statsRange,
+    required this.chartSeconds,
     required this.rangeLabel,
     required this.distributionItems,
+    required this.onRangeChanged,
   });
 
   final int totalSeconds;
@@ -373,9 +460,11 @@ class _FocusStatsPanel extends StatelessWidget {
   final int weekSeconds;
   final int sessions;
   final String mode;
-  final List<int> allDaySeconds;
+  final FocusStatsRange statsRange;
+  final List<int> chartSeconds;
   final String rangeLabel;
   final List<_FocusDistributionItem> distributionItems;
+  final ValueChanged<FocusStatsRange> onRangeChanged;
 
   String _studyTimeLabel(int seconds) {
     final duration = Duration(seconds: seconds);
@@ -387,8 +476,12 @@ class _FocusStatsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final safeAllDays = allDaySeconds.isEmpty ? <int>[0] : allDaySeconds;
+    final chartData = chartSeconds.isEmpty ? <int>[0] : chartSeconds;
     final averageSeconds = sessions == 0 ? 0 : totalSeconds ~/ sessions;
+    final distributionTotalSeconds = distributionItems.fold<int>(
+      0,
+      (total, item) => total + item.seconds,
+    );
 
     return Container(
       width: double.infinity,
@@ -407,6 +500,11 @@ class _FocusStatsPanel extends StatelessWidget {
                 child: Text(mode, style: NeoBrutalism.label),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          _FocusStatsRangeToggle(
+            selected: statsRange,
+            onChanged: onRangeChanged,
           ),
           const SizedBox(height: 16),
           Row(
@@ -455,17 +553,11 @@ class _FocusStatsPanel extends StatelessWidget {
           const SizedBox(height: 18),
           Row(
             children: [
-              Expanded(
-                  child: Text('ALL RECORDED DAYS', style: NeoBrutalism.label)),
+              Expanded(child: Text('FOCUS RANGE', style: NeoBrutalism.label)),
               Text(rangeLabel, style: NeoBrutalism.label),
             ],
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 106,
-            child: _FocusTrendChart(daySeconds: safeAllDays),
-          ),
-          const SizedBox(height: 20),
           Text('TIME DISTRIBUTION', style: NeoBrutalism.label),
           const SizedBox(height: 12),
           if (distributionItems.isEmpty)
@@ -478,24 +570,202 @@ class _FocusStatsPanel extends StatelessWidget {
             )
           else
             Column(
-              children: distributionItems.map((item) {
-                final percent = totalSeconds == 0
-                    ? 0
-                    : ((item.seconds / totalSeconds) * 100).round();
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _FocusDistributionRow(
-                    item: item,
-                    totalSeconds: totalSeconds,
-                    timeLabel: _studyTimeLabel(item.seconds),
-                    percentLabel: '$percent%',
-                  ),
-                );
-              }).toList(),
+              children: [
+                _FocusPieChart(items: distributionItems),
+                const SizedBox(height: 18),
+                ...distributionItems.map((item) {
+                  final percent = distributionTotalSeconds == 0
+                      ? 0
+                      : ((item.seconds / distributionTotalSeconds) * 100)
+                          .round();
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _FocusDistributionRow(
+                      item: item,
+                      totalSeconds: distributionTotalSeconds,
+                      timeLabel: _studyTimeLabel(item.seconds),
+                      percentLabel: '$percent%',
+                    ),
+                  );
+                }),
+              ],
             ),
+          const SizedBox(height: 18),
+          Text('FOCUS ACTIVITY', style: NeoBrutalism.label),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 106,
+            child: _FocusTrendChart(daySeconds: chartData),
+          ),
         ],
       ),
     );
+  }
+}
+
+class _FocusStatsRangeToggle extends StatelessWidget {
+  const _FocusStatsRangeToggle({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final FocusStatsRange selected;
+  final ValueChanged<FocusStatsRange> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 38,
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      child: Row(
+        children: [
+          _FocusStatsRangeSegment(
+            label: 'DAY',
+            selected: selected == FocusStatsRange.day,
+            onTap: () => onChanged(FocusStatsRange.day),
+          ),
+          Container(width: 2, color: NeoBrutalism.ink),
+          _FocusStatsRangeSegment(
+            label: 'WEEK',
+            selected: selected == FocusStatsRange.week,
+            onTap: () => onChanged(FocusStatsRange.week),
+          ),
+          Container(width: 2, color: NeoBrutalism.ink),
+          _FocusStatsRangeSegment(
+            label: 'MONTH',
+            selected: selected == FocusStatsRange.month,
+            onTap: () => onChanged(FocusStatsRange.month),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusStatsRangeSegment extends StatelessWidget {
+  const _FocusStatsRangeSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          color: selected ? NeoBrutalism.yellow : NeoBrutalism.paper,
+          child: Center(child: Text(label, style: NeoBrutalism.label)),
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusPieChart extends StatelessWidget {
+  const _FocusPieChart({required this.items});
+
+  final List<_FocusDistributionItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSeconds = items.fold<int>(
+      0,
+      (total, item) => total + item.seconds,
+    );
+
+    return Center(
+      child: SizedBox(
+        width: 210,
+        height: 210,
+        child: CustomPaint(
+          painter: _FocusPiePainter(items: items),
+          child: Center(
+            child: Container(
+              width: 92,
+              height: 58,
+              decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+              alignment: Alignment.center,
+              child: Text(
+                totalSeconds == 0 ? '0%' : '100%',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusPiePainter extends CustomPainter {
+  const _FocusPiePainter({required this.items});
+
+  final List<_FocusDistributionItem> items;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final center = rect.center;
+    final radius = math.min(size.width, size.height) / 2;
+    final totalSeconds = items.fold<int>(
+      0,
+      (total, item) => total + item.seconds,
+    );
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 32
+      ..strokeCap = StrokeCap.butt;
+
+    final outline = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = NeoBrutalism.ink;
+
+    canvas.drawCircle(center, radius - 18, outline);
+    canvas.drawCircle(center, radius - 50, outline);
+
+    if (totalSeconds == 0) {
+      stroke.color = NeoBrutalism.muted;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - 34),
+        -math.pi / 2,
+        math.pi * 2,
+        false,
+        stroke,
+      );
+      return;
+    }
+
+    var startAngle = -math.pi / 2;
+    for (final item in items) {
+      final sweepAngle = (item.seconds / totalSeconds) * math.pi * 2;
+      stroke.color = item.color;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - 34),
+        startAngle,
+        sweepAngle,
+        false,
+        stroke,
+      );
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FocusPiePainter oldDelegate) {
+    return oldDelegate.items != items;
   }
 }
 

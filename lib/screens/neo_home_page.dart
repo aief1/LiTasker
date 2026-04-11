@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   static const _focusTotalSecondsKey = 'focus_total_seconds';
   static const _focusCompletedSessionsKey = 'focus_completed_sessions';
   static const _focusUnassignedListKey = 'focus_list_unassigned';
+  static const _focusCurrentSubjectKey = 'focus_current_subject';
 
   late final Box<Task> _taskBox;
   late final Box<TaskList> _listBox;
@@ -48,6 +50,8 @@ class _NeoHomePageState extends State<NeoHomePage> {
   bool _focusRunning = false;
   bool _usePomodoro = false;
   FocusTab _focusTab = FocusTab.time;
+  FocusStatsRange _focusStatsRange = FocusStatsRange.week;
+  String _focusSubject = 'Focus';
   int _completedFocusSessions = 0;
   Timer? _focusTimer;
 
@@ -95,6 +99,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
       }
     }
     _completedFocusSessions = _readSettingInt(_focusCompletedSessionsKey);
+    final savedSubject = _settingsBox.get(_focusCurrentSubjectKey);
+    if (savedSubject is String && savedSubject.trim().isNotEmpty) {
+      _focusSubject = savedSubject.trim();
+    }
     setState(() {});
   }
 
@@ -125,6 +133,14 @@ class _NeoHomePageState extends State<NeoHomePage> {
     return 'focus_list_$listId';
   }
 
+  String _focusSubjectKey(String subject) {
+    return 'focus_subject_${Uri.encodeComponent(subject.trim())}';
+  }
+
+  String _focusSubjectDayKey(DateTime value, String subject) {
+    return '${_focusDayKey(value)}_subject_${Uri.encodeComponent(subject.trim())}';
+  }
+
   int _readSettingInt(String key) {
     final value = _settingsBox.get(key, defaultValue: 0);
     if (value is int) return value;
@@ -138,12 +154,18 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   void _recordFocusSecond() {
     final todayKey = _focusDayKey(DateTime.now());
+    final subject =
+        _focusSubject.trim().isEmpty ? 'Focus' : _focusSubject.trim();
     final taskListId = _selectedTask?.listId ?? _selectedListId;
     _writeSettingInt(
       _focusTotalSecondsKey,
       _readSettingInt(_focusTotalSecondsKey) + 1,
     );
     _writeSettingInt(todayKey, _readSettingInt(todayKey) + 1);
+    final subjectKey = _focusSubjectKey(subject);
+    _writeSettingInt(subjectKey, _readSettingInt(subjectKey) + 1);
+    final subjectDayKey = _focusSubjectDayKey(DateTime.now(), subject);
+    _writeSettingInt(subjectDayKey, _readSettingInt(subjectDayKey) + 1);
     final listKey = _focusListKey(taskListId);
     _writeSettingInt(listKey, _readSettingInt(listKey) + 1);
   }
@@ -161,65 +183,123 @@ class _NeoHomePageState extends State<NeoHomePage> {
     });
   }
 
-  List<int> get _focusAllDaySeconds {
-    final dayEntries = <MapEntry<String, int>>[];
-    for (final entry in _settingsBox.toMap().entries) {
-      final key = entry.key;
-      final value = entry.value;
-      if (key is! String || !key.startsWith('focus_day_') || value is! num) {
-        continue;
-      }
-      dayEntries.add(MapEntry(key, value.toInt()));
-    }
-    dayEntries.sort((a, b) => a.key.compareTo(b.key));
-    return dayEntries.map((entry) => entry.value).toList();
-  }
-
   String get _focusStatsRangeLabel {
-    final dayKeys = _settingsBox.keys
-        .whereType<String>()
-        .where((key) => key.startsWith('focus_day_'))
-        .toList()
-      ..sort();
-    if (dayKeys.isEmpty) return 'NO DATA YET';
-    return '${dayKeys.first.substring(10)} ~ ${dayKeys.last.substring(10)}';
+    final dates = _focusStatsDates;
+    if (dates.isEmpty) return 'NO DATA YET';
+    final first = _formatDate(dates.first);
+    final last = _formatDate(dates.last);
+    if (_focusStatsRange == FocusStatsRange.day) return first;
+    if (_focusStatsRange == FocusStatsRange.month) {
+      final month = dates.last.month.toString().padLeft(2, '0');
+      return '${dates.last.year}-$month';
+    }
+    return '$first ~ $last';
   }
 
   List<_FocusDistributionItem> get _focusDistributionItems {
-    final items = _taskLists.map((list) {
+    const palette = [
+      NeoBrutalism.yellow,
+      NeoBrutalism.cyan,
+      NeoBrutalism.pink,
+      NeoBrutalism.green,
+      NeoBrutalism.muted,
+    ];
+    final dates = _focusStatsDates;
+    final totalsBySubject = <String, int>{};
+    for (final entry in _settingsBox.toMap().entries) {
+      final key = entry.key;
+      final value = entry.value;
+      if (key is! String ||
+          !key.contains('_subject_') ||
+          value is! num ||
+          !_statsRangeContainsSubjectKey(key, dates)) {
+        continue;
+      }
+      final subject = Uri.decodeComponent(key.split('_subject_').last);
+      totalsBySubject[subject] =
+          (totalsBySubject[subject] ?? 0) + value.toInt();
+    }
+    final entries = totalsBySubject.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final items = List.generate(entries.length, (index) {
+      final entry = entries[index];
       return _FocusDistributionItem(
-        label: list.name,
-        seconds: _readSettingInt(_focusListKey(list.id)),
-        color: list.color,
+        label: entry.key,
+        seconds: entry.value,
+        color: palette[index % palette.length],
       );
-    }).toList();
+    });
 
     final assignedSeconds = items.fold<int>(
       0,
       (total, item) => total + item.seconds,
     );
-    final unassignedSeconds = _readSettingInt(_focusUnassignedListKey);
-    final unknownSeconds =
-        (_focusTotalSeconds - assignedSeconds - unassignedSeconds)
-            .clamp(0, _focusTotalSeconds)
-            .toInt();
-    final otherSeconds = unassignedSeconds + unknownSeconds;
-    if (otherSeconds > 0) {
+    final rangeTotalSeconds = _focusStatsChartSeconds.fold<int>(
+      0,
+      (total, seconds) => total + seconds,
+    );
+    final unknownSeconds = (rangeTotalSeconds - assignedSeconds)
+        .clamp(0, rangeTotalSeconds)
+        .toInt();
+    if (unknownSeconds > 0) {
       items.add(
         const _FocusDistributionItem(
           label: 'Focus',
           seconds: 0,
           color: NeoBrutalism.muted,
-        ).copyWith(seconds: otherSeconds),
+        ).copyWith(seconds: unknownSeconds),
       );
     }
 
     return items.where((item) => item.seconds > 0).toList();
   }
 
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  List<DateTime> get _focusStatsDates {
+    final today = _dateOnly(DateTime.now());
+    switch (_focusStatsRange) {
+      case FocusStatsRange.day:
+        return [today];
+      case FocusStatsRange.week:
+        return List.generate(7, (index) {
+          return today.subtract(Duration(days: 6 - index));
+        });
+      case FocusStatsRange.month:
+        final daysInMonth = DateTime(today.year, today.month + 1, 0).day;
+        return List.generate(daysInMonth, (index) {
+          return DateTime(today.year, today.month, index + 1);
+        });
+    }
+  }
+
+  List<int> get _focusStatsChartSeconds {
+    return _focusStatsDates.map((date) {
+      return _readSettingInt(_focusDayKey(date));
+    }).toList();
+  }
+
+  bool _statsRangeContainsSubjectKey(String key, List<DateTime> dates) {
+    return dates
+        .any((date) => key.startsWith('${_focusDayKey(date)}_subject_'));
+  }
+
   int get _focusTodaySeconds => _readSettingInt(_focusDayKey(DateTime.now()));
 
   int get _focusTotalSeconds => _readSettingInt(_focusTotalSecondsKey);
+
+  void _updateFocusSubject(String value) {
+    setState(() => _focusSubject = value);
+    unawaited(_settingsBox.put(_focusCurrentSubjectKey, value));
+  }
+
+  void _changeFocusStatsRange(FocusStatsRange range) {
+    setState(() => _focusStatsRange = range);
+  }
 
   List<Task> get _filteredTasks {
     final now = _dateOnly(DateTime.now());
@@ -586,7 +666,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
     final isDesktop = width > 1100;
     final title = _headerTitle();
     final focusLast7DaySeconds = _focusLast7DaySeconds;
-    final focusAllDaySeconds = _focusAllDaySeconds;
+    final focusStatsChartSeconds = _focusStatsChartSeconds;
     final focusWeekSeconds = focusLast7DaySeconds.fold<int>(
       0,
       (total, seconds) => total + seconds,
@@ -677,16 +757,20 @@ class _NeoHomePageState extends State<NeoHomePage> {
                             isRunning: _focusRunning,
                             usePomodoro: _usePomodoro,
                             selectedTab: _focusTab,
+                            focusSubject: _focusSubject,
+                            statsRange: _focusStatsRange,
                             completedSessions: _completedFocusSessions,
                             totalFocusSeconds: _focusTotalSeconds,
                             todayFocusSeconds: _focusTodaySeconds,
                             weekFocusSeconds: focusWeekSeconds,
-                            allDaySeconds: focusAllDaySeconds,
+                            chartSeconds: focusStatsChartSeconds,
                             statsRangeLabel: _focusStatsRangeLabel,
                             distributionItems: _focusDistributionItems,
                             onToggleTimer: _toggleFocusTimer,
                             onEndSession: _endFocusSession,
                             onTabChanged: _changeFocusTab,
+                            onSubjectChanged: _updateFocusSubject,
+                            onStatsRangeChanged: _changeFocusStatsRange,
                           )
                         : _viewMode == ViewMode.list
                             ? _TaskColumn(
