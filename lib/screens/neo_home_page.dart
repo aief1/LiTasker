@@ -97,18 +97,6 @@ class _NeoHomePageState extends State<NeoHomePage> {
     return null;
   }
 
-  Task? get _focusTask {
-    if (_selectedTask != null && !_selectedTask!.isDone) return _selectedTask;
-    final today = _tasks
-        .where((task) => !task.isDone && _sameDate(task.date, DateTime.now()))
-        .toList();
-    if (today.isNotEmpty) return today.first;
-    return _tasks.cast<Task?>().firstWhere(
-          (task) => task != null && !task.isDone,
-          orElse: () => null,
-        );
-  }
-
   DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 
@@ -534,12 +522,9 @@ class _NeoHomePageState extends State<NeoHomePage> {
                             isRunning: _focusRunning,
                             usePomodoro: _usePomodoro,
                             completedSessions: _completedFocusSessions,
-                            currentTask: _focusTask,
                             onToggleTimer: _toggleFocusTimer,
                             onEndSession: _endFocusSession,
                             onToggleMode: _toggleFocusMode,
-                            onOpenTasks: () =>
-                                setState(() => _viewMode = ViewMode.list),
                           )
                         : _viewMode == ViewMode.list
                             ? _TaskColumn(

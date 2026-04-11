@@ -23,22 +23,18 @@ class _FocusPanel extends StatelessWidget {
     required this.isRunning,
     required this.usePomodoro,
     required this.completedSessions,
-    required this.currentTask,
     required this.onToggleTimer,
     required this.onEndSession,
     required this.onToggleMode,
-    required this.onOpenTasks,
   });
 
   final Duration displayTime;
   final bool isRunning;
   final bool usePomodoro;
   final int completedSessions;
-  final Task? currentTask;
   final VoidCallback onToggleTimer;
   final VoidCallback onEndSession;
   final VoidCallback onToggleMode;
-  final VoidCallback onOpenTasks;
 
   String _durationLabel(Duration value) {
     final minutes = value.inMinutes.toString().padLeft(2, '0');
@@ -102,12 +98,7 @@ class _FocusPanel extends StatelessWidget {
               child: Container(color: NeoBrutalism.yellow),
             ),
           ),
-          const SizedBox(height: 28),
-          _CurrentObjectiveCard(
-            task: currentTask,
-            onOpenTasks: onOpenTasks,
-          ),
-          const SizedBox(height: 38),
+          const SizedBox(height: 34),
           SizedBox(
             width: 300,
             child: Column(
@@ -195,60 +186,6 @@ class _FocusModeToggle extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CurrentObjectiveCard extends StatelessWidget {
-  const _CurrentObjectiveCard({
-    required this.task,
-    required this.onOpenTasks,
-  });
-
-  final Task? task;
-  final VoidCallback onOpenTasks;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.yellow),
-            child: const Icon(Icons.format_list_bulleted,
-                size: 19, color: NeoBrutalism.ink),
-          ),
-          const SizedBox(width: 18),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('CURRENT OBJECTIVE', style: NeoBrutalism.label),
-                const SizedBox(height: 6),
-                Text(
-                  task?.title ?? 'No task selected',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: onOpenTasks,
-            icon: const Icon(Icons.edit, color: NeoBrutalism.ink),
-          ),
-        ],
       ),
     );
   }
