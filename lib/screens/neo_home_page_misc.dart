@@ -22,27 +22,33 @@ class _FocusPanel extends StatelessWidget {
     required this.displayTime,
     required this.isRunning,
     required this.usePomodoro,
+    required this.selectedTab,
     required this.completedSessions,
     required this.totalFocusSeconds,
     required this.todayFocusSeconds,
     required this.weekFocusSeconds,
-    required this.last7DaySeconds,
+    required this.allDaySeconds,
+    required this.statsRangeLabel,
+    required this.distributionItems,
     required this.onToggleTimer,
     required this.onEndSession,
-    required this.onToggleMode,
+    required this.onTabChanged,
   });
 
   final Duration displayTime;
   final bool isRunning;
   final bool usePomodoro;
+  final FocusTab selectedTab;
   final int completedSessions;
   final int totalFocusSeconds;
   final int todayFocusSeconds;
   final int weekFocusSeconds;
-  final List<int> last7DaySeconds;
+  final List<int> allDaySeconds;
+  final String statsRangeLabel;
+  final List<_FocusDistributionItem> distributionItems;
   final VoidCallback onToggleTimer;
   final VoidCallback onEndSession;
-  final VoidCallback onToggleMode;
+  final ValueChanged<FocusTab> onTabChanged;
 
   String _durationLabel(Duration value) {
     final minutes = value.inMinutes.toString().padLeft(2, '0');
@@ -63,69 +69,73 @@ class _FocusPanel extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: _FocusModeToggle(
-              usePomodoro: usePomodoro,
+              selectedTab: selectedTab,
               enabled: !isRunning,
-              onTap: onToggleMode,
+              onChanged: onTabChanged,
             ),
           ),
           const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 50),
-            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
-            child: Column(
-              children: [
-                Text(
-                  _durationLabel(displayTime),
-                  style: const TextStyle(
-                    fontSize: 82,
-                    fontWeight: FontWeight.w900,
-                    height: 0.9,
-                    letterSpacing: -3,
+          if (selectedTab == FocusTab.stats)
+            _FocusStatsPanel(
+              totalSeconds: totalFocusSeconds,
+              todaySeconds: todayFocusSeconds,
+              weekSeconds: weekFocusSeconds,
+              sessions: completedSessions,
+              mode: usePomodoro ? 'POMO' : 'TIME',
+              allDaySeconds: allDaySeconds,
+              rangeLabel: statsRangeLabel,
+              distributionItems: distributionItems,
+            )
+          else ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 50),
+              decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+              child: Column(
+                children: [
+                  Text(
+                    _durationLabel(displayTime),
+                    style: const TextStyle(
+                      fontSize: 82,
+                      fontWeight: FontWeight.w900,
+                      height: 0.9,
+                      letterSpacing: -3,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(isRunning ? 'RUNNING / $mode' : 'READY / $mode',
-                    style: NeoBrutalism.label),
-              ],
+                  const SizedBox(height: 14),
+                  Text(isRunning ? 'RUNNING / $mode' : 'READY / $mode',
+                      style: NeoBrutalism.label),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          _FocusProgressBar(
-            displayTime: displayTime,
-            usePomodoro: usePomodoro,
-            totalPomodoroSeconds: totalSeconds,
-          ),
-          const SizedBox(height: 34),
-          SizedBox(
-            width: 300,
-            child: Column(
-              children: [
-                _FocusActionButton(
-                  label: 'START',
-                  icon: isRunning ? Icons.timer : Icons.play_arrow,
-                  onTap: onToggleTimer,
-                  isActive: isRunning,
-                ),
-                const SizedBox(height: 20),
-                _FocusActionButton(
-                  label: 'END\nSESSION',
-                  icon: isRunning ? Icons.stop_outlined : Icons.stop,
-                  onTap: onEndSession,
-                  isActive: !isRunning,
-                ),
-              ],
+            const SizedBox(height: 24),
+            _FocusProgressBar(
+              displayTime: displayTime,
+              usePomodoro: usePomodoro,
+              totalPomodoroSeconds: totalSeconds,
             ),
-          ),
-          const SizedBox(height: 40),
-          _FocusStatsPanel(
-            totalSeconds: totalFocusSeconds,
-            todaySeconds: todayFocusSeconds,
-            weekSeconds: weekFocusSeconds,
-            sessions: completedSessions,
-            mode: usePomodoro ? 'POMO' : 'TIME',
-            last7DaySeconds: last7DaySeconds,
-          ),
+            const SizedBox(height: 34),
+            SizedBox(
+              width: 300,
+              child: Column(
+                children: [
+                  _FocusActionButton(
+                    label: 'START',
+                    icon: isRunning ? Icons.timer : Icons.play_arrow,
+                    onTap: onToggleTimer,
+                    isActive: isRunning,
+                  ),
+                  const SizedBox(height: 20),
+                  _FocusActionButton(
+                    label: 'END\nSESSION',
+                    icon: isRunning ? Icons.stop_outlined : Icons.stop,
+                    onTap: onEndSession,
+                    isActive: !isRunning,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -210,47 +220,75 @@ class _FocusProgressBar extends StatelessWidget {
 
 class _FocusModeToggle extends StatelessWidget {
   const _FocusModeToggle({
-    required this.usePomodoro,
+    required this.selectedTab,
     required this.enabled,
-    required this.onTap,
+    required this.onChanged,
   });
 
-  final bool usePomodoro;
+  final FocusTab selectedTab;
   final bool enabled;
-  final VoidCallback onTap;
+  final ValueChanged<FocusTab> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.45,
-        child: Container(
-          width: 118,
-          height: 38,
-          decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: double.infinity,
-                  color: usePomodoro ? NeoBrutalism.paper : NeoBrutalism.yellow,
-                  child: Center(
-                    child: Text('TIME', style: NeoBrutalism.label),
-                  ),
-                ),
-              ),
-              Container(width: 2, color: NeoBrutalism.ink),
-              Expanded(
-                child: Container(
-                  height: double.infinity,
-                  color: usePomodoro ? NeoBrutalism.yellow : NeoBrutalism.paper,
-                  child: Center(
-                    child: Text('POMO', style: NeoBrutalism.label),
-                  ),
-                ),
-              ),
-            ],
+    return Opacity(
+      opacity: enabled || selectedTab == FocusTab.stats ? 1 : 0.45,
+      child: Container(
+        width: 188,
+        height: 38,
+        decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+        child: Row(
+          children: [
+            _FocusModeSegment(
+              label: 'TIME',
+              selected: selectedTab == FocusTab.time,
+              onTap: enabled ? () => onChanged(FocusTab.time) : null,
+            ),
+            Container(width: 2, color: NeoBrutalism.ink),
+            _FocusModeSegment(
+              label: 'POMO',
+              selected: selectedTab == FocusTab.pomo,
+              onTap: enabled ? () => onChanged(FocusTab.pomo) : null,
+            ),
+            Container(width: 2, color: NeoBrutalism.ink),
+            _FocusModeSegment(
+              label: 'STATS',
+              selected: selectedTab == FocusTab.stats,
+              onTap: () => onChanged(FocusTab.stats),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusModeSegment extends StatelessWidget {
+  const _FocusModeSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          height: double.infinity,
+          color: selected ? NeoBrutalism.yellow : NeoBrutalism.paper,
+          child: Center(
+            child: Text(
+              label,
+              style: NeoBrutalism.label.copyWith(fontSize: 10),
+            ),
           ),
         ),
       ),
@@ -325,7 +363,9 @@ class _FocusStatsPanel extends StatelessWidget {
     required this.weekSeconds,
     required this.sessions,
     required this.mode,
-    required this.last7DaySeconds,
+    required this.allDaySeconds,
+    required this.rangeLabel,
+    required this.distributionItems,
   });
 
   final int totalSeconds;
@@ -333,7 +373,9 @@ class _FocusStatsPanel extends StatelessWidget {
   final int weekSeconds;
   final int sessions;
   final String mode;
-  final List<int> last7DaySeconds;
+  final List<int> allDaySeconds;
+  final String rangeLabel;
+  final List<_FocusDistributionItem> distributionItems;
 
   String _studyTimeLabel(int seconds) {
     final duration = Duration(seconds: seconds);
@@ -345,10 +387,8 @@ class _FocusStatsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxSeconds = last7DaySeconds.fold<int>(
-      1,
-      (maxValue, seconds) => seconds > maxValue ? seconds : maxValue,
-    );
+    final safeAllDays = allDaySeconds.isEmpty ? <int>[0] : allDaySeconds;
+    final averageSeconds = sessions == 0 ? 0 : totalSeconds ~/ sessions;
 
     return Container(
       width: double.infinity,
@@ -369,26 +409,26 @@ class _FocusStatsPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.yellow),
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('TOTAL FOCUS TIME', style: NeoBrutalism.label),
-                const SizedBox(height: 8),
-                Text(
-                  _studyTimeLabel(totalSeconds),
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1.4,
-                    height: 1,
-                  ),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: _FocusHeroStat(
+                  label: 'TOTAL FOCUS',
+                  value: _studyTimeLabel(totalSeconds),
+                  color: NeoBrutalism.yellow,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _FocusHeroStat(
+                  label: 'AVG / SESSION',
+                  value: _studyTimeLabel(averageSeconds),
+                  color: NeoBrutalism.cyan,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           Row(
@@ -413,57 +453,225 @@ class _FocusStatsPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          Text('LAST 7 DAYS', style: NeoBrutalism.label),
+          Row(
+            children: [
+              Expanded(
+                  child: Text('ALL RECORDED DAYS', style: NeoBrutalism.label)),
+              Text(rangeLabel, style: NeoBrutalism.label),
+            ],
+          ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 92,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(last7DaySeconds.length, (index) {
-                final seconds = last7DaySeconds[index];
-                final heightFactor = (seconds / maxSeconds).clamp(0.08, 1.0);
-                final isToday = index == last7DaySeconds.length - 1;
-
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: index == 0 ? 0 : 4,
-                      right: index == last7DaySeconds.length - 1 ? 0 : 4,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: FractionallySizedBox(
-                              heightFactor: heightFactor,
-                              widthFactor: 1,
-                              alignment: Alignment.bottomCenter,
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 260),
-                                curve: Curves.easeOutCubic,
-                                decoration: NeoBrutalism.flatCard(
-                                  color: isToday
-                                      ? NeoBrutalism.yellow
-                                      : NeoBrutalism.cyan,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(isToday ? 'TOD' : '${index + 1}',
-                            style: NeoBrutalism.label),
-                      ],
-                    ),
+            height: 106,
+            child: _FocusTrendChart(daySeconds: safeAllDays),
+          ),
+          const SizedBox(height: 20),
+          Text('TIME DISTRIBUTION', style: NeoBrutalism.label),
+          const SizedBox(height: 12),
+          if (distributionItems.isEmpty)
+            Container(
+              width: double.infinity,
+              decoration: NeoBrutalism.flatCard(color: NeoBrutalism.muted),
+              padding: const EdgeInsets.all(16),
+              child: Text('START A FOCUS SESSION TO BUILD DATA',
+                  style: NeoBrutalism.label),
+            )
+          else
+            Column(
+              children: distributionItems.map((item) {
+                final percent = totalSeconds == 0
+                    ? 0
+                    : ((item.seconds / totalSeconds) * 100).round();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _FocusDistributionRow(
+                    item: item,
+                    totalSeconds: totalSeconds,
+                    timeLabel: _studyTimeLabel(item.seconds),
+                    percentLabel: '$percent%',
                   ),
                 );
-              }),
+              }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusHeroStat extends StatelessWidget {
+  const _FocusHeroStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: NeoBrutalism.flatCard(color: color),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: NeoBrutalism.label),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.3,
+                height: 1,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FocusTrendChart extends StatelessWidget {
+  const _FocusTrendChart({required this.daySeconds});
+
+  final List<int> daySeconds;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxSeconds = daySeconds.fold<int>(
+      1,
+      (maxValue, seconds) => seconds > maxValue ? seconds : maxValue,
+    );
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      reverse: true,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(daySeconds.length, (index) {
+          final seconds = daySeconds[index];
+          final heightFactor = (seconds / maxSeconds).clamp(0.08, 1.0);
+          final isToday = index == daySeconds.length - 1;
+
+          return Container(
+            width: 30,
+            margin: EdgeInsets.only(
+              left: index == 0 ? 0 : 5,
+              right: index == daySeconds.length - 1 ? 0 : 5,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FractionallySizedBox(
+                      heightFactor: heightFactor,
+                      widthFactor: 1,
+                      alignment: Alignment.bottomCenter,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutCubic,
+                        decoration: NeoBrutalism.flatCard(
+                          color:
+                              isToday ? NeoBrutalism.yellow : NeoBrutalism.cyan,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(isToday ? 'TOD' : '${index + 1}',
+                    style: NeoBrutalism.label.copyWith(fontSize: 9)),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _FocusDistributionRow extends StatelessWidget {
+  const _FocusDistributionRow({
+    required this.item,
+    required this.totalSeconds,
+    required this.timeLabel,
+    required this.percentLabel,
+  });
+
+  final _FocusDistributionItem item;
+  final int totalSeconds;
+  final String timeLabel;
+  final String percentLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress =
+        totalSeconds == 0 ? 0.0 : (item.seconds / totalSeconds).clamp(0.0, 1.0);
+
+    return Container(
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 14,
+                height: 14,
+                decoration: NeoBrutalism.flatCard(color: item.color),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child:
+                    Text(item.label.toUpperCase(), style: NeoBrutalism.label),
+              ),
+              Text('$timeLabel / $percentLabel', style: NeoBrutalism.label),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 14,
+            width: double.infinity,
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.muted),
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              heightFactor: 1,
+              child: Container(color: item.color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusDistributionItem {
+  const _FocusDistributionItem({
+    required this.label,
+    required this.seconds,
+    required this.color,
+  });
+
+  final String label;
+  final int seconds;
+  final Color color;
+
+  _FocusDistributionItem copyWith({int? seconds}) {
+    return _FocusDistributionItem(
+      label: label,
+      seconds: seconds ?? this.seconds,
+      color: color,
     );
   }
 }

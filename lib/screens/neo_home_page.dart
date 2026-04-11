@@ -27,6 +27,7 @@ class NeoHomePage extends StatefulWidget {
 class _NeoHomePageState extends State<NeoHomePage> {
   static const _focusTotalSecondsKey = 'focus_total_seconds';
   static const _focusCompletedSessionsKey = 'focus_completed_sessions';
+  static const _focusUnassignedListKey = 'focus_list_unassigned';
 
   late final Box<Task> _taskBox;
   late final Box<TaskList> _listBox;
@@ -46,6 +47,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   Duration _pomodoroRemaining = const Duration(minutes: 25);
   bool _focusRunning = false;
   bool _usePomodoro = false;
+  FocusTab _focusTab = FocusTab.time;
   int _completedFocusSessions = 0;
   Timer? _focusTimer;
 
@@ -118,6 +120,11 @@ class _NeoHomePageState extends State<NeoHomePage> {
     return 'focus_day_${date.year}-$month-$day';
   }
 
+  String _focusListKey(String? listId) {
+    if (listId == null || listId.isEmpty) return _focusUnassignedListKey;
+    return 'focus_list_$listId';
+  }
+
   int _readSettingInt(String key) {
     final value = _settingsBox.get(key, defaultValue: 0);
     if (value is int) return value;
@@ -131,11 +138,14 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   void _recordFocusSecond() {
     final todayKey = _focusDayKey(DateTime.now());
+    final taskListId = _selectedTask?.listId ?? _selectedListId;
     _writeSettingInt(
       _focusTotalSecondsKey,
       _readSettingInt(_focusTotalSecondsKey) + 1,
     );
     _writeSettingInt(todayKey, _readSettingInt(todayKey) + 1);
+    final listKey = _focusListKey(taskListId);
+    _writeSettingInt(listKey, _readSettingInt(listKey) + 1);
   }
 
   void _recordFocusSession() {
@@ -149,6 +159,62 @@ class _NeoHomePageState extends State<NeoHomePage> {
       final date = today.subtract(Duration(days: 6 - index));
       return _readSettingInt(_focusDayKey(date));
     });
+  }
+
+  List<int> get _focusAllDaySeconds {
+    final dayEntries = <MapEntry<String, int>>[];
+    for (final entry in _settingsBox.toMap().entries) {
+      final key = entry.key;
+      final value = entry.value;
+      if (key is! String || !key.startsWith('focus_day_') || value is! num) {
+        continue;
+      }
+      dayEntries.add(MapEntry(key, value.toInt()));
+    }
+    dayEntries.sort((a, b) => a.key.compareTo(b.key));
+    return dayEntries.map((entry) => entry.value).toList();
+  }
+
+  String get _focusStatsRangeLabel {
+    final dayKeys = _settingsBox.keys
+        .whereType<String>()
+        .where((key) => key.startsWith('focus_day_'))
+        .toList()
+      ..sort();
+    if (dayKeys.isEmpty) return 'NO DATA YET';
+    return '${dayKeys.first.substring(10)} ~ ${dayKeys.last.substring(10)}';
+  }
+
+  List<_FocusDistributionItem> get _focusDistributionItems {
+    final items = _taskLists.map((list) {
+      return _FocusDistributionItem(
+        label: list.name,
+        seconds: _readSettingInt(_focusListKey(list.id)),
+        color: list.color,
+      );
+    }).toList();
+
+    final assignedSeconds = items.fold<int>(
+      0,
+      (total, item) => total + item.seconds,
+    );
+    final unassignedSeconds = _readSettingInt(_focusUnassignedListKey);
+    final unknownSeconds =
+        (_focusTotalSeconds - assignedSeconds - unassignedSeconds)
+            .clamp(0, _focusTotalSeconds)
+            .toInt();
+    final otherSeconds = unassignedSeconds + unknownSeconds;
+    if (otherSeconds > 0) {
+      items.add(
+        const _FocusDistributionItem(
+          label: 'Focus',
+          seconds: 0,
+          color: NeoBrutalism.muted,
+        ).copyWith(seconds: otherSeconds),
+      );
+    }
+
+    return items.where((item) => item.seconds > 0).toList();
   }
 
   int get _focusTodaySeconds => _readSettingInt(_focusDayKey(DateTime.now()));
@@ -324,12 +390,15 @@ class _NeoHomePageState extends State<NeoHomePage> {
     });
   }
 
-  void _toggleFocusMode() {
-    if (_focusRunning) return;
+  void _changeFocusTab(FocusTab tab) {
+    if (_focusRunning && tab != FocusTab.stats && tab != _focusTab) return;
     setState(() {
-      _usePomodoro = !_usePomodoro;
-      _focusElapsed = Duration.zero;
-      _pomodoroRemaining = const Duration(minutes: 25);
+      _focusTab = tab;
+      if (!_focusRunning && tab != FocusTab.stats) {
+        _usePomodoro = tab == FocusTab.pomo;
+        _focusElapsed = Duration.zero;
+        _pomodoroRemaining = const Duration(minutes: 25);
+      }
     });
   }
 
@@ -517,6 +586,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
     final isDesktop = width > 1100;
     final title = _headerTitle();
     final focusLast7DaySeconds = _focusLast7DaySeconds;
+    final focusAllDaySeconds = _focusAllDaySeconds;
     final focusWeekSeconds = focusLast7DaySeconds.fold<int>(
       0,
       (total, seconds) => total + seconds,
@@ -606,14 +676,17 @@ class _NeoHomePageState extends State<NeoHomePage> {
                                 : _focusElapsed,
                             isRunning: _focusRunning,
                             usePomodoro: _usePomodoro,
+                            selectedTab: _focusTab,
                             completedSessions: _completedFocusSessions,
                             totalFocusSeconds: _focusTotalSeconds,
                             todayFocusSeconds: _focusTodaySeconds,
                             weekFocusSeconds: focusWeekSeconds,
-                            last7DaySeconds: focusLast7DaySeconds,
+                            allDaySeconds: focusAllDaySeconds,
+                            statsRangeLabel: _focusStatsRangeLabel,
+                            distributionItems: _focusDistributionItems,
                             onToggleTimer: _toggleFocusTimer,
                             onEndSession: _endFocusSession,
-                            onToggleMode: _toggleFocusMode,
+                            onTabChanged: _changeFocusTab,
                           )
                         : _viewMode == ViewMode.list
                             ? _TaskColumn(
