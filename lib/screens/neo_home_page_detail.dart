@@ -206,15 +206,27 @@ class _DetailPanelState extends State<_DetailPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 720;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.fromLTRB(20, isMobile ? 14 : 20, 20, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (isMobile) ...[
+            Center(
+              child: Container(
+                width: 52,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 18),
+                color: NeoBrutalism.ink,
+              ),
+            ),
+          ],
           Container(
             width: double.infinity,
-            decoration: NeoBrutalism.card(color: NeoBrutalism.paper),
-            padding: const EdgeInsets.all(18),
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -227,22 +239,40 @@ class _DetailPanelState extends State<_DetailPanel> {
                 TextField(
                   controller: _titleController,
                   style: const TextStyle(
-                      fontSize: 28, fontWeight: FontWeight.w900),
-                  decoration: const InputDecoration(border: InputBorder.none),
+                      fontSize: 24, fontWeight: FontWeight.w700, height: 1.2),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           Container(
             width: double.infinity,
-            decoration: NeoBrutalism.card(
-                color: NeoBrutalism.cyan.withValues(alpha: 0.28)),
-            padding: const EdgeInsets.all(18),
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+            padding: const EdgeInsets.fromLTRB(18, 6, 14, 6),
             child: DropdownButtonFormField<String?>(
               initialValue: widget.task.listId,
+              dropdownColor: NeoBrutalism.paper,
+              iconEnabledColor: NeoBrutalism.ink,
+              style: const TextStyle(
+                color: NeoBrutalism.ink,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
               decoration: const InputDecoration(
-                  border: InputBorder.none, labelText: 'LIST'),
+                border: InputBorder.none,
+                labelText: 'LIST',
+                labelStyle: TextStyle(
+                  color: NeoBrutalism.ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
               items: [
                 const DropdownMenuItem<String?>(
                     value: null, child: Text('Inbox')),
@@ -252,11 +282,11 @@ class _DetailPanelState extends State<_DetailPanel> {
               onChanged: widget.onListChanged,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           Container(
             width: double.infinity,
-            decoration: NeoBrutalism.card(color: NeoBrutalism.paper),
-            padding: const EdgeInsets.all(18),
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -286,15 +316,28 @@ class _DetailPanelState extends State<_DetailPanel> {
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height: 260,
+                  height: isMobile ? 220 : 260,
                   child: _preview
                       ? Markdown(data: _descController.text)
                       : TextField(
                           controller: _descController,
+                          textAlignVertical: TextAlignVertical.top,
                           expands: true,
                           maxLines: null,
                           decoration: const InputDecoration(
-                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.all(14),
+                            border: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                  color: NeoBrutalism.ink, width: 1.5),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                  color: NeoBrutalism.ink, width: 1.5),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                  color: NeoBrutalism.ink, width: 2),
+                            ),
                             hintText: 'Write notes in Markdown...',
                           ),
                         ),
