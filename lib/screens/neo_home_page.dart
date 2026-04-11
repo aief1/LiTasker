@@ -51,6 +51,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   bool _usePomodoro = false;
   FocusTab _focusTab = FocusTab.time;
   FocusStatsRange _focusStatsRange = FocusStatsRange.week;
+  DateTime _focusStatsAnchorDate = DateTime.now();
   String _focusSubject = 'Focus';
   int _completedFocusSessions = 0;
   Timer? _focusTimer;
@@ -261,18 +262,19 @@ class _NeoHomePageState extends State<NeoHomePage> {
   }
 
   List<DateTime> get _focusStatsDates {
-    final today = _dateOnly(DateTime.now());
+    final anchor = _dateOnly(_focusStatsAnchorDate);
     switch (_focusStatsRange) {
       case FocusStatsRange.day:
-        return [today];
+        return [anchor];
       case FocusStatsRange.week:
+        final weekStart = anchor.subtract(Duration(days: anchor.weekday - 1));
         return List.generate(7, (index) {
-          return today.subtract(Duration(days: 6 - index));
+          return weekStart.add(Duration(days: index));
         });
       case FocusStatsRange.month:
-        final daysInMonth = DateTime(today.year, today.month + 1, 0).day;
+        final daysInMonth = DateTime(anchor.year, anchor.month + 1, 0).day;
         return List.generate(daysInMonth, (index) {
-          return DateTime(today.year, today.month, index + 1);
+          return DateTime(anchor.year, anchor.month, index + 1);
         });
     }
   }
@@ -298,7 +300,34 @@ class _NeoHomePageState extends State<NeoHomePage> {
   }
 
   void _changeFocusStatsRange(FocusStatsRange range) {
-    setState(() => _focusStatsRange = range);
+    setState(() {
+      _focusStatsRange = range;
+      _focusStatsAnchorDate = DateTime.now();
+    });
+  }
+
+  bool get _canGoNextFocusStatsRange {
+    final today = _dateOnly(DateTime.now());
+    final dates = _focusStatsDates;
+    if (dates.isEmpty) return false;
+    return dates.last.isBefore(today);
+  }
+
+  void _shiftFocusStatsRange(int direction) {
+    if (direction > 0 && !_canGoNextFocusStatsRange) return;
+    setState(() {
+      _focusStatsAnchorDate = switch (_focusStatsRange) {
+        FocusStatsRange.day =>
+          _focusStatsAnchorDate.add(Duration(days: direction)),
+        FocusStatsRange.week =>
+          _focusStatsAnchorDate.add(Duration(days: direction * 7)),
+        FocusStatsRange.month => DateTime(
+            _focusStatsAnchorDate.year,
+            _focusStatsAnchorDate.month + direction,
+            1,
+          ),
+      };
+    });
   }
 
   List<Task> get _filteredTasks {
@@ -771,6 +800,11 @@ class _NeoHomePageState extends State<NeoHomePage> {
                             onTabChanged: _changeFocusTab,
                             onSubjectChanged: _updateFocusSubject,
                             onStatsRangeChanged: _changeFocusStatsRange,
+                            onPreviousStatsRange: () =>
+                                _shiftFocusStatsRange(-1),
+                            onNextStatsRange: _canGoNextFocusStatsRange
+                                ? () => _shiftFocusStatsRange(1)
+                                : null,
                           )
                         : _viewMode == ViewMode.list
                             ? _TaskColumn(

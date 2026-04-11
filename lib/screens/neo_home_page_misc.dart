@@ -37,6 +37,8 @@ class _FocusPanel extends StatelessWidget {
     required this.onTabChanged,
     required this.onSubjectChanged,
     required this.onStatsRangeChanged,
+    required this.onPreviousStatsRange,
+    required this.onNextStatsRange,
   });
 
   final Duration displayTime;
@@ -57,6 +59,8 @@ class _FocusPanel extends StatelessWidget {
   final ValueChanged<FocusTab> onTabChanged;
   final ValueChanged<String> onSubjectChanged;
   final ValueChanged<FocusStatsRange> onStatsRangeChanged;
+  final VoidCallback onPreviousStatsRange;
+  final VoidCallback? onNextStatsRange;
 
   String _durationLabel(Duration value) {
     final minutes = value.inMinutes.toString().padLeft(2, '0');
@@ -95,6 +99,8 @@ class _FocusPanel extends StatelessWidget {
               rangeLabel: statsRangeLabel,
               distributionItems: distributionItems,
               onRangeChanged: onStatsRangeChanged,
+              onPreviousRange: onPreviousStatsRange,
+              onNextRange: onNextStatsRange,
             )
           else ...[
             _FocusSubjectField(
@@ -453,6 +459,8 @@ class _FocusStatsPanel extends StatelessWidget {
     required this.rangeLabel,
     required this.distributionItems,
     required this.onRangeChanged,
+    required this.onPreviousRange,
+    required this.onNextRange,
   });
 
   final int totalSeconds;
@@ -465,6 +473,8 @@ class _FocusStatsPanel extends StatelessWidget {
   final String rangeLabel;
   final List<_FocusDistributionItem> distributionItems;
   final ValueChanged<FocusStatsRange> onRangeChanged;
+  final VoidCallback onPreviousRange;
+  final VoidCallback? onNextRange;
 
   String _studyTimeLabel(int seconds) {
     final duration = Duration(seconds: seconds);
@@ -551,11 +561,10 @@ class _FocusStatsPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(child: Text('FOCUS RANGE', style: NeoBrutalism.label)),
-              Text(rangeLabel, style: NeoBrutalism.label),
-            ],
+          _FocusRangeHeader(
+            rangeLabel: rangeLabel,
+            onPrevious: onPreviousRange,
+            onNext: onNextRange,
           ),
           const SizedBox(height: 12),
           Text('TIME DISTRIBUTION', style: NeoBrutalism.label),
@@ -642,6 +651,69 @@ class _FocusStatsRangeToggle extends StatelessWidget {
   }
 }
 
+class _FocusRangeHeader extends StatelessWidget {
+  const _FocusRangeHeader({
+    required this.rangeLabel,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final String rangeLabel;
+  final VoidCallback onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Row(
+        children: [
+          _FocusRangeArrow(
+            icon: Icons.chevron_left,
+            onTap: onPrevious,
+          ),
+          Expanded(
+            child: Text(
+              rangeLabel,
+              textAlign: TextAlign.center,
+              style: NeoBrutalism.label,
+            ),
+          ),
+          _FocusRangeArrow(
+            icon: Icons.chevron_right,
+            onTap: onNext,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusRangeArrow extends StatelessWidget {
+  const _FocusRangeArrow({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? 0.35 : 1,
+        child: Container(
+          width: 34,
+          height: 30,
+          alignment: Alignment.center,
+          color: Colors.transparent,
+          child: Icon(icon, color: NeoBrutalism.ink, size: 24),
+        ),
+      ),
+    );
+  }
+}
+
 class _FocusStatsRangeSegment extends StatelessWidget {
   const _FocusStatsRangeSegment({
     required this.label,
@@ -676,33 +748,12 @@ class _FocusPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalSeconds = items.fold<int>(
-      0,
-      (total, item) => total + item.seconds,
-    );
-
     return Center(
       child: SizedBox(
         width: 210,
         height: 210,
         child: CustomPaint(
           painter: _FocusPiePainter(items: items),
-          child: Center(
-            child: Container(
-              width: 92,
-              height: 58,
-              decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
-              alignment: Alignment.center,
-              child: Text(
-                totalSeconds == 0 ? '0%' : '100%',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );
