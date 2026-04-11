@@ -34,7 +34,7 @@ void main() {
   testWidgets('app shows splash branding', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
     expect(find.text('LITASKER'), findsOneWidget);
-    expect(find.text('PLAN HARD. FINISH LOUD.'), findsOneWidget);
+    expect(find.text('认真计划。漂亮完成。'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 3));
   });

@@ -133,32 +133,32 @@ class _SidebarPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: NeoBrutalism.card(color: NeoBrutalism.paper),
-            child: const Text('Navigation',
+            child: const Text('导航',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
           ),
           const SizedBox(height: 22),
-          const Text('SMART VIEWS',
+          const Text('智能视图',
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.0)),
           const SizedBox(height: 12),
           _NavTile(
-            label: 'Inbox',
+            label: '收件箱',
             count: countInbox,
             color: NeoBrutalism.paper,
             selected: selectedSmartView == SmartView.inbox && !showCompleted,
             onTap: () => onSmartViewSelected(SmartView.inbox),
           ),
           _NavTile(
-            label: 'Today',
+            label: '今天',
             count: countToday,
             color: NeoBrutalism.cyan,
             selected: selectedSmartView == SmartView.today && !showCompleted,
             onTap: () => onSmartViewSelected(SmartView.today),
           ),
           _NavTile(
-            label: 'Next 7 Days',
+            label: '未来 7 天',
             count: countNext7,
             color: NeoBrutalism.yellow,
             selected:
@@ -166,7 +166,7 @@ class _SidebarPanel extends StatelessWidget {
             onTap: () => onSmartViewSelected(SmartView.next7Days),
           ),
           const SizedBox(height: 22),
-          const Text('LISTS',
+          const Text('清单',
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
@@ -182,7 +182,7 @@ class _SidebarPanel extends StatelessWidget {
               onTap: () => onListSelected(list.id),
             ),
           _NavTile(
-            label: 'Completed',
+            label: '已完成',
             count: completedCount,
             color: NeoBrutalism.pink,
             selected: showCompleted,
@@ -191,12 +191,11 @@ class _SidebarPanel extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                  child: _SmallActionButton(label: 'Import', onTap: onImport)),
+              Expanded(child: _SmallActionButton(label: '导入', onTap: onImport)),
               const SizedBox(width: 10),
               Expanded(
                   child: _SmallActionButton(
-                      label: 'Export',
+                      label: '导出',
                       onTap: onExport,
                       color: NeoBrutalism.yellow)),
             ],
@@ -294,7 +293,7 @@ class _TaskColumn extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Build momentum with small wins and clear priorities.',
+            '用小胜利和清晰优先级积累动力。',
             maxLines: isMobile ? 2 : 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(

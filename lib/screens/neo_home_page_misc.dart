@@ -73,7 +73,7 @@ class _FocusPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalSeconds = focusDurationMinutes * 60;
-    final mode = usePomodoro ? 'POMODORO' : 'TIMER';
+    final mode = usePomodoro ? '番茄' : '计时';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
@@ -95,7 +95,7 @@ class _FocusPanel extends StatelessWidget {
               todaySeconds: todayFocusSeconds,
               weekSeconds: weekFocusSeconds,
               sessions: completedSessions,
-              mode: usePomodoro ? 'POMO' : 'TIME',
+              mode: usePomodoro ? '番茄' : '计时',
               statsRange: statsRange,
               chartSeconds: chartSeconds,
               rangeLabel: statsRangeLabel,
@@ -127,7 +127,7 @@ class _FocusPanel extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Text(isRunning ? 'RUNNING / $mode' : 'READY / $mode',
+                  Text(isRunning ? '运行中 / $mode' : '准备就绪 / $mode',
                       style: NeoBrutalism.label),
                 ],
               ),
@@ -144,14 +144,14 @@ class _FocusPanel extends StatelessWidget {
               child: Column(
                 children: [
                   _FocusActionButton(
-                    label: 'START',
+                    label: '开始',
                     icon: isRunning ? Icons.timer : Icons.play_arrow,
                     onTap: onToggleTimer,
                     isActive: isRunning,
                   ),
                   const SizedBox(height: 20),
                   _FocusActionButton(
-                    label: 'END\nSESSION',
+                    label: '结束\n专注',
                     icon: isRunning ? Icons.stop_outlined : Icons.stop,
                     onTap: onEndSession,
                     isActive: !isRunning,
@@ -231,10 +231,8 @@ class _FocusProgressBar extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('ELAPSED: ${_durationLabel(elapsed)}',
-                style: NeoBrutalism.label),
-            Text('REMAINING: ${_durationLabel(remaining)}',
-                style: NeoBrutalism.label),
+            Text('已过: ${_durationLabel(elapsed)}', style: NeoBrutalism.label),
+            Text('剩余: ${_durationLabel(remaining)}', style: NeoBrutalism.label),
           ],
         ),
       ],
@@ -288,7 +286,7 @@ class _FocusSubjectFieldState extends State<_FocusSubjectField> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('FOCUS NAME', style: NeoBrutalism.label),
+          Text('专注名称', style: NeoBrutalism.label),
           const SizedBox(height: 8),
           TextField(
             controller: _controller,
@@ -302,7 +300,7 @@ class _FocusSubjectFieldState extends State<_FocusSubjectField> {
             decoration: const InputDecoration(
               isDense: true,
               border: InputBorder.none,
-              hintText: 'Math / English / Study',
+              hintText: '数学 / 英语 / 学习',
             ),
           ),
         ],
@@ -333,19 +331,19 @@ class _FocusModeToggle extends StatelessWidget {
         child: Row(
           children: [
             _FocusModeSegment(
-              label: 'TIME',
+              label: '计时',
               selected: selectedTab == FocusTab.time,
               onTap: enabled ? () => onChanged(FocusTab.time) : null,
             ),
             Container(width: 2, color: NeoBrutalism.ink),
             _FocusModeSegment(
-              label: 'POMO',
+              label: '番茄',
               selected: selectedTab == FocusTab.pomo,
               onTap: enabled ? () => onChanged(FocusTab.pomo) : null,
             ),
             Container(width: 2, color: NeoBrutalism.ink),
             _FocusModeSegment(
-              label: 'STATS',
+              label: '统计',
               selected: selectedTab == FocusTab.stats,
               onTap: () => onChanged(FocusTab.stats),
             ),
@@ -504,7 +502,7 @@ class _FocusStatsPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Expanded(child: Text('STUDY STATS', style: NeoBrutalism.label)),
+              Expanded(child: Text('学习统计', style: NeoBrutalism.label)),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -524,7 +522,7 @@ class _FocusStatsPanel extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: _FocusHeroStat(
-                  label: 'TOTAL FOCUS',
+                  label: '累计专注',
                   value: _studyTimeLabel(totalSeconds),
                   color: NeoBrutalism.yellow,
                 ),
@@ -533,7 +531,7 @@ class _FocusStatsPanel extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: _FocusHeroStat(
-                  label: 'AVG / SESSION',
+                  label: '平均 / 次',
                   value: _studyTimeLabel(averageSeconds),
                   color: NeoBrutalism.cyan,
                 ),
@@ -545,20 +543,20 @@ class _FocusStatsPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: _FocusStat(
-                  label: 'TODAY',
+                  label: '今天',
                   value: _studyTimeLabel(todaySeconds),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: _FocusStat(
-                  label: '7 DAYS',
+                  label: '7 天',
                   value: _studyTimeLabel(weekSeconds),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: _FocusStat(label: 'SESSIONS', value: '#$sessions'),
+                child: _FocusStat(label: '次数', value: '#$sessions'),
               ),
             ],
           ),
@@ -569,15 +567,14 @@ class _FocusStatsPanel extends StatelessWidget {
             onNext: onNextRange,
           ),
           const SizedBox(height: 12),
-          Text('TIME DISTRIBUTION', style: NeoBrutalism.label),
+          Text('时间分布', style: NeoBrutalism.label),
           const SizedBox(height: 12),
           if (distributionItems.isEmpty)
             Container(
               width: double.infinity,
               decoration: NeoBrutalism.flatCard(color: NeoBrutalism.muted),
               padding: const EdgeInsets.all(16),
-              child: Text('START A FOCUS SESSION TO BUILD DATA',
-                  style: NeoBrutalism.label),
+              child: Text('开始一次专注后会生成统计数据', style: NeoBrutalism.label),
             )
           else
             Column(
@@ -602,7 +599,7 @@ class _FocusStatsPanel extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 18),
-          Text('FOCUS ACTIVITY', style: NeoBrutalism.label),
+          Text('专注活动', style: NeoBrutalism.label),
           const SizedBox(height: 12),
           SizedBox(
             height: 106,
@@ -631,19 +628,19 @@ class _FocusStatsRangeToggle extends StatelessWidget {
       child: Row(
         children: [
           _FocusStatsRangeSegment(
-            label: 'DAY',
+            label: '日',
             selected: selected == FocusStatsRange.day,
             onTap: () => onChanged(FocusStatsRange.day),
           ),
           Container(width: 2, color: NeoBrutalism.ink),
           _FocusStatsRangeSegment(
-            label: 'WEEK',
+            label: '周',
             selected: selected == FocusStatsRange.week,
             onTap: () => onChanged(FocusStatsRange.week),
           ),
           Container(width: 2, color: NeoBrutalism.ink),
           _FocusStatsRangeSegment(
-            label: 'MONTH',
+            label: '月',
             selected: selected == FocusStatsRange.month,
             onTap: () => onChanged(FocusStatsRange.month),
           ),
@@ -912,7 +909,7 @@ class _FocusTrendChart extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(isToday ? 'TOD' : '${index + 1}',
+                Text(isToday ? '今' : '${index + 1}',
                     style: NeoBrutalism.label.copyWith(fontSize: 9)),
               ],
             ),
@@ -1071,10 +1068,10 @@ class _SettingsPanel extends StatelessWidget {
             children: [
               _SettingsSection(
                 index: '01',
-                title: 'FOCUS TIMER',
+                title: '专注计时',
                 children: [
                   _StepperSetting(
-                    label: 'Focus duration',
+                    label: '专注时长',
                     value: focusDurationMinutes,
                     suffix: 'MIN',
                     min: 5,
@@ -1083,7 +1080,7 @@ class _SettingsPanel extends StatelessWidget {
                     onChanged: onFocusDurationChanged,
                   ),
                   _StepperSetting(
-                    label: 'Short break duration',
+                    label: '短休息时长',
                     value: shortBreakMinutes,
                     suffix: 'MIN',
                     min: 1,
@@ -1092,7 +1089,7 @@ class _SettingsPanel extends StatelessWidget {
                     onChanged: onShortBreakChanged,
                   ),
                   _StepperSetting(
-                    label: 'Long break duration',
+                    label: '长休息时长',
                     value: longBreakMinutes,
                     suffix: 'MIN',
                     min: 1,
@@ -1101,22 +1098,22 @@ class _SettingsPanel extends StatelessWidget {
                     onChanged: onLongBreakChanged,
                   ),
                   _StepperSetting(
-                    label: 'Long break after',
+                    label: '长休息间隔',
                     value: longBreakAfterSessions,
-                    suffix: 'SESS',
+                    suffix: '次',
                     min: 1,
                     max: 12,
                     step: 1,
                     onChanged: onLongBreakAfterChanged,
                   ),
                   _ToggleSetting(
-                    label: 'Sound effects',
+                    label: '音效',
                     icon: Icons.volume_up,
                     value: soundEffects,
                     onChanged: onSoundEffectsChanged,
                   ),
                   _ToggleSetting(
-                    label: 'Auto-start break',
+                    label: '自动开始休息',
                     icon: Icons.play_arrow,
                     value: autoStartBreak,
                     onChanged: onAutoStartBreakChanged,
@@ -1126,22 +1123,22 @@ class _SettingsPanel extends StatelessWidget {
               const SizedBox(height: 32),
               const _SettingsSection(
                 index: '02',
-                title: 'TASK SYSTEM',
+                title: '任务系统',
                 children: [
-                  _SettingsInfoRow(label: 'Default start page', value: 'FOCUS'),
-                  _SettingsInfoRow(label: 'Default task date', value: 'TODAY'),
+                  _SettingsInfoRow(label: '默认启动页', value: '专注'),
+                  _SettingsInfoRow(label: '默认任务日期', value: '今天'),
                 ],
               ),
               const SizedBox(height: 32),
               _SettingsSection(
                 index: '03',
-                title: 'DATA ASSETS',
+                title: '数据资产',
                 children: [
                   Row(
                     children: [
                       Expanded(
                         child: _SettingsActionCard(
-                          label: 'Import backup',
+                          label: '导入备份',
                           icon: Icons.cloud_download,
                           onTap: onImport,
                         ),
@@ -1149,7 +1146,7 @@ class _SettingsPanel extends StatelessWidget {
                       const SizedBox(width: 14),
                       Expanded(
                         child: _SettingsActionCard(
-                          label: 'Export backup',
+                          label: '导出备份',
                           icon: Icons.cloud_upload,
                           color: NeoBrutalism.yellow,
                           onTap: onExport,
@@ -1162,7 +1159,7 @@ class _SettingsPanel extends StatelessWidget {
               const SizedBox(height: 32),
               _SettingsSection(
                 index: '!!',
-                title: 'DANGER ZONE',
+                title: '危险区域',
                 markerColor: NeoBrutalism.pink,
                 children: [
                   GestureDetector(
@@ -1183,8 +1180,7 @@ class _SettingsPanel extends StatelessWidget {
                           const Icon(Icons.warning, color: NeoBrutalism.ink),
                           const SizedBox(width: 14),
                           Expanded(
-                            child: Text('CLEAR ALL LOCAL DATA',
-                                style: NeoBrutalism.label),
+                            child: Text('清空所有本地数据', style: NeoBrutalism.label),
                           ),
                           const Icon(Icons.delete_forever,
                               color: NeoBrutalism.ink),
@@ -1194,7 +1190,7 @@ class _SettingsPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'This action deletes tasks, lists, focus stats, and settings on this device.',
+                    '此操作会删除此设备上的任务、清单、专注统计和设置。',
                     style: NeoBrutalism.label.copyWith(
                       color: NeoBrutalism.ink.withValues(alpha: 0.65),
                       height: 1.35,
@@ -1484,7 +1480,7 @@ class _BottomNav extends StatelessWidget {
         children: [
           Expanded(
             child: _BottomNavItem(
-              label: 'FOCUS',
+              label: '专注',
               selected: currentView == ViewMode.focus,
               onTap: () => onChange(ViewMode.focus),
             ),
@@ -1492,7 +1488,7 @@ class _BottomNav extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: _BottomNavItem(
-              label: 'TASKS',
+              label: '任务',
               selected: currentView == ViewMode.list,
               onTap: () => onChange(ViewMode.list),
             ),
@@ -1500,7 +1496,7 @@ class _BottomNav extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: _BottomNavItem(
-              label: 'CALENDAR',
+              label: '日历',
               selected: currentView == ViewMode.calendar,
               onTap: () => onChange(ViewMode.calendar),
             ),
@@ -1614,14 +1610,14 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 30),
-            const Text('EMPTY',
+            const Text('暂无任务',
                 style: TextStyle(
                     fontSize: 48, fontWeight: FontWeight.w900, height: 0.95)),
             const SizedBox(height: 20),
             Container(width: 3, height: 96, color: NeoBrutalism.ink),
             const SizedBox(height: 20),
             const Text(
-              'Tap the plus button to create your first task.',
+              '点击加号创建你的第一个任务。',
               textAlign: TextAlign.center,
               style: TextStyle(
                   fontSize: 22, fontWeight: FontWeight.w700, height: 1.3),
@@ -1655,6 +1651,15 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   DateTime? _date;
   String? _listId;
 
+  String _priorityLabel(TaskPriority priority) {
+    return switch (priority) {
+      TaskPriority.none => '无',
+      TaskPriority.low => '低',
+      TaskPriority.medium => '中',
+      TaskPriority.high => '高',
+    };
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1677,7 +1682,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Quick Add',
+                const Text('快速添加',
                     style:
                         TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 16),
@@ -1691,8 +1696,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.w900),
                     decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'What needs to be done?'),
+                        border: InputBorder.none, hintText: '要做什么？'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1710,7 +1714,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                             ? NeoBrutalism.card(color: _priorityColor(priority))
                             : NeoBrutalism.flatCard(
                                 color: _priorityColor(priority)),
-                        child: Text(priority.name.toUpperCase(),
+                        child: Text(_priorityLabel(priority),
                             style: NeoBrutalism.label),
                       ),
                     );
@@ -1740,7 +1744,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                               color: NeoBrutalism.background),
                           child: Text(
                             _date == null
-                                ? 'Select date'
+                                ? '选择日期'
                                 : '${_date!.year}/${_date!.month}/${_date!.day}',
                             style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
@@ -1757,10 +1761,10 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                           value: _listId,
                           isExpanded: true,
                           underline: const SizedBox.shrink(),
-                          hint: const Text('Choose list'),
+                          hint: const Text('选择清单'),
                           items: [
                             const DropdownMenuItem<String?>(
-                                value: null, child: Text('Inbox')),
+                                value: null, child: Text('收件箱')),
                             ...widget.allLists.map((list) {
                               return DropdownMenuItem<String?>(
                                   value: list.id, child: Text(list.name));
@@ -1777,12 +1781,11 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                   children: [
                     Expanded(
                         child: _SmallActionButton(
-                            label: 'Cancel',
-                            onTap: () => Navigator.pop(context))),
+                            label: '取消', onTap: () => Navigator.pop(context))),
                     const SizedBox(width: 10),
                     Expanded(
                       child: _SmallActionButton(
-                        label: 'Add Task',
+                        label: '添加任务',
                         color: NeoBrutalism.yellow,
                         onTap: () {
                           final title = _controller.text.trim();

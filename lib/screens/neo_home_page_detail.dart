@@ -137,13 +137,13 @@ class _TaskCard extends StatelessWidget {
                         },
                         itemBuilder: (context) => [
                           const PopupMenuItem(
-                              value: 'clear', child: Text('Move to Inbox')),
+                              value: 'clear', child: Text('移到收件箱')),
                           for (final taskList in taskLists)
                             PopupMenuItem(
                                 value: 'list:${taskList.id}',
-                                child: Text('Move to ${taskList.name}')),
+                                child: Text('移到 ${taskList.name}')),
                           const PopupMenuItem(
-                              value: 'delete', child: Text('Delete')),
+                              value: 'delete', child: Text('删除')),
                         ],
                       ),
                     ],
@@ -264,7 +264,7 @@ class _DetailPanelState extends State<_DetailPanel> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('TITLE',
+                const Text('标题',
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
@@ -299,7 +299,7 @@ class _DetailPanelState extends State<_DetailPanel> {
               ),
               decoration: const InputDecoration(
                 border: InputBorder.none,
-                labelText: 'LIST',
+                labelText: '清单',
                 labelStyle: TextStyle(
                   color: NeoBrutalism.ink,
                   fontSize: 12,
@@ -309,7 +309,7 @@ class _DetailPanelState extends State<_DetailPanel> {
               ),
               items: [
                 const DropdownMenuItem<String?>(
-                    value: null, child: Text('Inbox')),
+                    value: null, child: Text('收件箱')),
                 ...widget.taskLists.map((list) => DropdownMenuItem<String?>(
                     value: list.id, child: Text(list.name))),
               ],
@@ -326,7 +326,7 @@ class _DetailPanelState extends State<_DetailPanel> {
               children: [
                 Row(
                   children: [
-                    const Text('NOTES',
+                    const Text('备注',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
@@ -342,7 +342,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                               ? NeoBrutalism.yellow
                               : NeoBrutalism.background,
                         ),
-                        child: Text(_preview ? 'EDIT' : 'PREVIEW',
+                        child: Text(_preview ? '编辑' : '预览',
                             style: NeoBrutalism.label),
                       ),
                     ),
@@ -372,7 +372,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                               borderSide:
                                   BorderSide(color: NeoBrutalism.ink, width: 2),
                             ),
-                            hintText: 'Write notes in Markdown...',
+                            hintText: '用 Markdown 写备注...',
                           ),
                         ),
                 ),
@@ -399,6 +399,6 @@ Color _priorityColor(TaskPriority priority) {
 }
 
 String _dateLabel(DateTime? date) {
-  if (date == null) return 'NO DATE';
+  if (date == null) return '无日期';
   return '${date.year}/${date.month}/${date.day}';
 }

@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'PLAN HARD. FINISH LOUD.',
+                '认真计划。漂亮完成。',
                 style: TextStyle(
                   fontSize: 14,
                   color: NeoBrutalism.ink,

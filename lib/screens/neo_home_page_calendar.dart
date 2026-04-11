@@ -193,13 +193,13 @@ class _CalendarPanel extends StatelessWidget {
         children: [
           const Row(
             children: [
-              _WeekdayLabel('MON'),
-              _WeekdayLabel('TUE'),
-              _WeekdayLabel('WED'),
-              _WeekdayLabel('THU'),
-              _WeekdayLabel('FRI'),
-              _WeekdayLabel('SAT'),
-              _WeekdayLabel('SUN'),
+              _WeekdayLabel('一'),
+              _WeekdayLabel('二'),
+              _WeekdayLabel('三'),
+              _WeekdayLabel('四'),
+              _WeekdayLabel('五'),
+              _WeekdayLabel('六'),
+              _WeekdayLabel('日'),
             ],
           ),
           const SizedBox(height: 8),
@@ -222,7 +222,7 @@ class _CalendarPanel extends StatelessWidget {
                   const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
           const SizedBox(height: 18),
           if (selectedTasks.isEmpty)
-            const Text('No tasks for this date',
+            const Text('这一天没有任务',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           if (selectedTasks.isNotEmpty)
             ListView.separated(
@@ -272,9 +272,9 @@ class _CalendarPanel extends StatelessWidget {
         spacing: 10,
         runSpacing: 10,
         children: [
-          _StatusChip(label: 'DONE $completed', color: NeoBrutalism.green),
-          _StatusChip(label: 'PENDING $pending', color: NeoBrutalism.cyan),
-          _StatusChip(label: 'DATED $planned', color: NeoBrutalism.yellow),
+          _StatusChip(label: '已完成 $completed', color: NeoBrutalism.green),
+          _StatusChip(label: '待办 $pending', color: NeoBrutalism.cyan),
+          _StatusChip(label: '已安排 $planned', color: NeoBrutalism.yellow),
         ],
       ),
     );
@@ -312,11 +312,11 @@ class _CalendarPanel extends StatelessWidget {
   String _calendarModeLabel(CalendarViewMode value) {
     switch (value) {
       case CalendarViewMode.month:
-        return 'MONTH';
+        return '月';
       case CalendarViewMode.week:
-        return 'WEEK';
+        return '周';
       case CalendarViewMode.day:
-        return 'DAY';
+        return '日';
     }
   }
 }
@@ -401,7 +401,7 @@ class _CalendarAgenda extends StatelessWidget {
                       style: NeoBrutalism.title),
                   const SizedBox(height: 14),
                   if (dayTasks.isEmpty)
-                    const Text('No tasks',
+                    const Text('没有任务',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700)),
                   ...dayTasks.map((task) {
@@ -444,7 +444,7 @@ class _CalendarAgenda extends StatelessWidget {
   }
 
   String _weekday(int weekday) {
-    const labels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+    const labels = ['一', '二', '三', '四', '五', '六', '日'];
     return labels[weekday - 1];
   }
 }

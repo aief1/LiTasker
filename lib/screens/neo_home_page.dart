@@ -59,7 +59,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   FocusTab _focusTab = FocusTab.time;
   FocusStatsRange _focusStatsRange = FocusStatsRange.week;
   DateTime _focusStatsAnchorDate = DateTime.now();
-  String _focusSubject = 'Focus';
+  String _focusSubject = '专注';
   int _focusDurationMinutes = 25;
   int _shortBreakMinutes = 5;
   int _longBreakMinutes = 15;
@@ -93,19 +93,19 @@ class _NeoHomePageState extends State<NeoHomePage> {
       _taskLists = [
         TaskList.withIcon(
           id: 'work',
-          name: 'Work',
+          name: '工作',
           icon: Icons.work_outline,
           color: NeoBrutalism.cyan,
         ),
         TaskList.withIcon(
           id: 'study',
-          name: 'Study',
+          name: '学习',
           icon: Icons.school_outlined,
           color: NeoBrutalism.yellow,
         ),
         TaskList.withIcon(
           id: 'life',
-          name: 'Life',
+          name: '生活',
           icon: Icons.home_outlined,
           color: NeoBrutalism.pink,
         ),
@@ -188,8 +188,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   void _recordFocusSecond() {
     final todayKey = _focusDayKey(DateTime.now());
-    final subject =
-        _focusSubject.trim().isEmpty ? 'Focus' : _focusSubject.trim();
+    final subject = _focusSubject.trim().isEmpty ? '专注' : _focusSubject.trim();
     final taskListId = _selectedTask?.listId ?? _selectedListId;
     _writeSettingInt(
       _focusTotalSecondsKey,
@@ -219,7 +218,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   String get _focusStatsRangeLabel {
     final dates = _focusStatsDates;
-    if (dates.isEmpty) return 'NO DATA YET';
+    if (dates.isEmpty) return '暂无数据';
     final first = _formatDate(dates.first);
     final last = _formatDate(dates.last);
     if (_focusStatsRange == FocusStatsRange.day) return first;
@@ -278,7 +277,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
     if (unknownSeconds > 0) {
       items.add(
         const _FocusDistributionItem(
-          label: 'Focus',
+          label: '专注',
           seconds: 0,
           color: NeoBrutalism.muted,
         ).copyWith(seconds: unknownSeconds),
@@ -605,7 +604,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   Future<void> _exportData() async {
     final file = await FilePicker.platform.saveFile(
-      dialogTitle: 'Export backup',
+      dialogTitle: '导出备份',
       fileName: 'litasker_backup.json',
       type: FileType.custom,
       allowedExtensions: ['json'],
@@ -645,7 +644,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
     await File(file).writeAsString(jsonEncode(payload));
     if (!mounted) return;
     ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Backup exported')));
+        .showSnackBar(const SnackBar(content: Text('备份已导出')));
   }
 
   Future<void> _importData() async {
@@ -721,18 +720,18 @@ class _NeoHomePageState extends State<NeoHomePage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: NeoBrutalism.paper,
-          title: const Text('Clear all local data?'),
+          title: const Text('清空所有本地数据？'),
           content: const Text(
-            'This will delete tasks, lists, focus stats, and settings on this device.',
+            '这会删除此设备上的任务、清单、专注统计和设置。',
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: const Text('取消'),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Clear'),
+              child: const Text('清空'),
             ),
           ],
         );
@@ -760,7 +759,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
       _focusTab = FocusTab.time;
       _focusStatsRange = FocusStatsRange.week;
       _focusStatsAnchorDate = DateTime.now();
-      _focusSubject = 'Focus';
+      _focusSubject = '专注';
       _focusDurationMinutes = 25;
       _shortBreakMinutes = 5;
       _longBreakMinutes = 15;
@@ -831,22 +830,22 @@ class _NeoHomePageState extends State<NeoHomePage> {
   }
 
   String _headerTitle() {
-    if (_viewMode == ViewMode.settings) return 'System Settings';
-    if (_viewMode == ViewMode.focus) return 'Focus';
-    if (_viewMode == ViewMode.calendar) return 'Calendar';
-    if (_showCompleted) return 'Completed';
+    if (_viewMode == ViewMode.settings) return '系统设置';
+    if (_viewMode == ViewMode.focus) return '专注';
+    if (_viewMode == ViewMode.calendar) return '日历';
+    if (_showCompleted) return '已完成';
     if (_selectedListId != null) {
       return _taskLists.firstWhere((list) => list.id == _selectedListId).name;
     }
     switch (_selectedSmartView) {
       case SmartView.inbox:
-        return 'Inbox';
+        return '收件箱';
       case SmartView.today:
-        return 'Today';
+        return '今天';
       case SmartView.next7Days:
-        return 'Next 7 Days';
+        return '未来 7 天';
       case null:
-        return 'Tasks';
+        return '任务';
     }
   }
 
@@ -863,10 +862,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
       (total, seconds) => total + seconds,
     );
     final headerActionLabel = switch (_viewMode) {
-      ViewMode.focus => 'TASKS',
-      ViewMode.list => 'CALENDAR',
-      ViewMode.calendar => 'LIST',
-      ViewMode.settings => 'BACK',
+      ViewMode.focus => '任务',
+      ViewMode.list => '日历',
+      ViewMode.calendar => '列表',
+      ViewMode.settings => '返回',
     };
 
     return Scaffold(
