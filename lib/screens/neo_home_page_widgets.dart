@@ -268,6 +268,10 @@ class _TaskColumn extends StatelessWidget {
     required this.taskLists,
     required this.selectedTaskId,
     required this.isMobile,
+    required this.searchQuery,
+    required this.sortMode,
+    required this.onSearchChanged,
+    required this.onSortChanged,
     required this.onSelectTask,
     required this.onToggleDone,
     required this.onMoveTask,
@@ -279,6 +283,10 @@ class _TaskColumn extends StatelessWidget {
   final List<TaskList> taskLists;
   final String? selectedTaskId;
   final bool isMobile;
+  final String searchQuery;
+  final TaskSortMode sortMode;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<TaskSortMode> onSortChanged;
   final ValueChanged<String> onSelectTask;
   final ValueChanged<String> onToggleDone;
   final void Function(String, String?) onMoveTask;
@@ -313,6 +321,13 @@ class _TaskColumn extends StatelessWidget {
                 fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.0),
           ),
           const SizedBox(height: 20),
+          _TaskToolbar(
+            searchQuery: searchQuery,
+            sortMode: sortMode,
+            onSearchChanged: onSearchChanged,
+            onSortChanged: onSortChanged,
+          ),
+          const SizedBox(height: 14),
           Expanded(
             child: ListView.builder(
               itemCount: tasks.length,
@@ -332,6 +347,101 @@ class _TaskColumn extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TaskToolbar extends StatefulWidget {
+  const _TaskToolbar({
+    required this.searchQuery,
+    required this.sortMode,
+    required this.onSearchChanged,
+    required this.onSortChanged,
+  });
+
+  final String searchQuery;
+  final TaskSortMode sortMode;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<TaskSortMode> onSortChanged;
+
+  @override
+  State<_TaskToolbar> createState() => _TaskToolbarState();
+}
+
+class _TaskToolbarState extends State<_TaskToolbar> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.searchQuery);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TaskToolbar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.searchQuery != oldWidget.searchQuery &&
+        widget.searchQuery != _controller.text) {
+      _controller.text = widget.searchQuery;
+      _controller.selection =
+          TextSelection.collapsed(offset: widget.searchQuery.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  String _sortLabel(TaskSortMode mode) {
+    return switch (mode) {
+      TaskSortMode.date => '日期',
+      TaskSortMode.priority => '优先级',
+      TaskSortMode.title => '标题',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: TextField(
+            onChanged: widget.onSearchChanged,
+            controller: _controller,
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              icon: Icon(Icons.search, color: NeoBrutalism.ink),
+              hintText: '搜索任务或备注',
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: TaskSortMode.values.map((mode) {
+            final selected = widget.sortMode == mode;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => widget.onSortChanged(mode),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: selected
+                      ? NeoBrutalism.card(color: NeoBrutalism.yellow)
+                      : NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+                  child: Center(
+                    child: Text(_sortLabel(mode), style: NeoBrutalism.label),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

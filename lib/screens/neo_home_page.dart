@@ -36,6 +36,13 @@ class _NeoHomePageState extends State<NeoHomePage> {
   static const _settingLongBreakAfterKey = 'setting_long_break_after_sessions';
   static const _settingSoundEffectsKey = 'setting_sound_effects';
   static const _settingAutoStartBreakKey = 'setting_auto_start_break';
+  static const _settingDailyGoalMinutesKey = 'setting_daily_goal_minutes';
+  static const _settingDefaultStartPageKey = 'setting_default_start_page';
+  static const _settingDefaultTaskDateTodayKey =
+      'setting_default_task_date_today';
+  static const _settingBackupReminderKey = 'setting_backup_reminder';
+  static const _settingReduceMotionKey = 'setting_reduce_motion';
+  static const _lastBackupAtKey = 'backup_last_exported_at';
 
   late final Box<Task> _taskBox;
   late final Box<TaskList> _listBox;
@@ -66,6 +73,14 @@ class _NeoHomePageState extends State<NeoHomePage> {
   int _longBreakAfterSessions = 4;
   bool _soundEffects = true;
   bool _autoStartBreak = false;
+  int _dailyGoalMinutes = 120;
+  DefaultStartPage _defaultStartPage = DefaultStartPage.focus;
+  bool _defaultTaskDateToday = true;
+  bool _backupReminder = true;
+  bool _reduceMotion = false;
+  String _taskSearchQuery = '';
+  TaskSortMode _taskSortMode = TaskSortMode.date;
+  String? _focusStatsSubjectFilter;
   int _completedFocusSessions = 0;
   Timer? _focusTimer;
 
@@ -130,6 +145,20 @@ class _NeoHomePageState extends State<NeoHomePage> {
     _soundEffects = _readSettingBool(_settingSoundEffectsKey, fallback: true);
     _autoStartBreak =
         _readSettingBool(_settingAutoStartBreakKey, fallback: false);
+    _dailyGoalMinutes =
+        _readSettingInt(_settingDailyGoalMinutesKey, fallback: 120);
+    _defaultStartPage = _readSettingInt(_settingDefaultStartPageKey) == 1
+        ? DefaultStartPage.tasks
+        : DefaultStartPage.focus;
+    _defaultTaskDateToday =
+        _readSettingBool(_settingDefaultTaskDateTodayKey, fallback: true);
+    _backupReminder =
+        _readSettingBool(_settingBackupReminderKey, fallback: true);
+    _reduceMotion = _readSettingBool(_settingReduceMotionKey, fallback: false);
+    _viewMode = _defaultStartPage == DefaultStartPage.focus
+        ? ViewMode.focus
+        : ViewMode.list;
+    _settingsReturnView = _viewMode;
     _pomodoroRemaining = _pomodoroDuration;
     setState(() {});
   }
@@ -238,6 +267,19 @@ class _NeoHomePageState extends State<NeoHomePage> {
       NeoBrutalism.muted,
     ];
     final dates = _focusStatsDates;
+    final selectedSubject = _focusStatsSubjectFilter;
+    if (selectedSubject != null) {
+      final seconds = dates.fold<int>(
+          0, (total, date) => total + _focusSecondsForDate(date));
+      if (seconds == 0) return [];
+      return [
+        _FocusDistributionItem(
+          label: selectedSubject,
+          seconds: seconds,
+          color: NeoBrutalism.yellow,
+        ),
+      ];
+    }
     final totalsBySubject = <String, int>{};
     for (final entry in _settingsBox.toMap().entries) {
       final key = entry.key;
@@ -313,7 +355,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   List<int> get _focusStatsChartSeconds {
     return _focusStatsDates.map((date) {
-      return _readSettingInt(_focusDayKey(date));
+      return _focusSecondsForDate(date);
     }).toList();
   }
 
@@ -326,6 +368,59 @@ class _NeoHomePageState extends State<NeoHomePage> {
 
   int get _focusTotalSeconds => _readSettingInt(_focusTotalSecondsKey);
 
+  int _focusSecondsForDate(DateTime date) {
+    final subject = _focusStatsSubjectFilter;
+    if (subject == null) return _readSettingInt(_focusDayKey(date));
+    return _readSettingInt(_focusSubjectDayKey(date, subject));
+  }
+
+  int get _filteredFocusTotalSeconds {
+    final subject = _focusStatsSubjectFilter;
+    if (subject == null) return _focusTotalSeconds;
+    return _readSettingInt(_focusSubjectKey(subject));
+  }
+
+  int get _filteredFocusTodaySeconds {
+    final subject = _focusStatsSubjectFilter;
+    if (subject == null) return _focusTodaySeconds;
+    return _readSettingInt(_focusSubjectDayKey(DateTime.now(), subject));
+  }
+
+  List<String> get _focusSubjects {
+    final subjects = <String>{};
+    for (final key in _settingsBox.keys) {
+      if (key is String && key.startsWith('focus_subject_')) {
+        subjects
+            .add(Uri.decodeComponent(key.substring('focus_subject_'.length)));
+      }
+    }
+    final current = _focusSubject.trim();
+    if (current.isNotEmpty) subjects.add(current);
+    return subjects.toList()..sort();
+  }
+
+  int get _focusStreakDays {
+    var streak = 0;
+    var cursor = _dateOnly(DateTime.now());
+    while (_focusSecondsForDate(cursor) > 0) {
+      streak += 1;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
+  String get _backupHint {
+    if (!_backupReminder) return '备份提醒已关闭';
+    final raw = _settingsBox.get(_lastBackupAtKey);
+    if (raw is! String) return '还没有备份，建议先导出一次';
+    final date = DateTime.tryParse(raw);
+    if (date == null) return '备份记录异常，建议重新导出';
+    final days = DateTime.now().difference(date).inDays;
+    if (days == 0) return '今天已备份';
+    if (days >= 7) return '距离上次备份 $days 天，建议导出';
+    return '上次备份 $days 天前';
+  }
+
   void _updateFocusSubject(String value) {
     setState(() => _focusSubject = value);
     unawaited(_settingsBox.put(_focusCurrentSubjectKey, value));
@@ -336,6 +431,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
       _focusStatsRange = range;
       _focusStatsAnchorDate = DateTime.now();
     });
+  }
+
+  void _changeFocusStatsSubject(String? subject) {
+    setState(() => _focusStatsSubjectFilter = subject);
   }
 
   bool get _canGoNextFocusStatsRange {
@@ -399,6 +498,32 @@ class _NeoHomePageState extends State<NeoHomePage> {
     unawaited(_settingsBox.put(_settingAutoStartBreakKey, value));
   }
 
+  void _updateDailyGoal(int value) {
+    final minutes = value.clamp(15, 480);
+    setState(() => _dailyGoalMinutes = minutes);
+    _writeSettingInt(_settingDailyGoalMinutesKey, minutes);
+  }
+
+  void _updateDefaultStartPage(DefaultStartPage value) {
+    setState(() => _defaultStartPage = value);
+    _writeSettingInt(_settingDefaultStartPageKey, value.index);
+  }
+
+  void _updateDefaultTaskDateToday(bool value) {
+    setState(() => _defaultTaskDateToday = value);
+    unawaited(_settingsBox.put(_settingDefaultTaskDateTodayKey, value));
+  }
+
+  void _updateBackupReminder(bool value) {
+    setState(() => _backupReminder = value);
+    unawaited(_settingsBox.put(_settingBackupReminderKey, value));
+  }
+
+  void _updateReduceMotion(bool value) {
+    setState(() => _reduceMotion = value);
+    unawaited(_settingsBox.put(_settingReduceMotionKey, value));
+  }
+
   void _openSettings() {
     if (_viewMode != ViewMode.settings) _settingsReturnView = _viewMode;
     setState(() => _viewMode = ViewMode.settings);
@@ -411,8 +536,14 @@ class _NeoHomePageState extends State<NeoHomePage> {
   List<Task> get _filteredTasks {
     final now = _dateOnly(DateTime.now());
     final end = now.add(const Duration(days: 7));
+    final query = _taskSearchQuery.trim().toLowerCase();
     final items = _tasks.where((task) {
       if (_showCompleted != task.isDone) return false;
+      if (query.isNotEmpty &&
+          !task.title.toLowerCase().contains(query) &&
+          !task.description.toLowerCase().contains(query)) {
+        return false;
+      }
 
       if (_selectedSmartView != null) {
         switch (_selectedSmartView!) {
@@ -435,12 +566,38 @@ class _NeoHomePageState extends State<NeoHomePage> {
     }).toList();
 
     items.sort((a, b) {
-      if (a.date == null && b.date == null) return 0;
-      if (a.date == null) return 1;
-      if (b.date == null) return -1;
-      return a.date!.compareTo(b.date!);
+      return switch (_taskSortMode) {
+        TaskSortMode.date => _compareTaskDate(a, b),
+        TaskSortMode.priority => _compareTaskPriority(a, b),
+        TaskSortMode.title =>
+          a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      };
     });
     return items;
+  }
+
+  int _compareTaskDate(Task a, Task b) {
+    if (a.date == null && b.date == null) return _compareTaskPriority(a, b);
+    if (a.date == null) return 1;
+    if (b.date == null) return -1;
+    final dateCompare = a.date!.compareTo(b.date!);
+    return dateCompare == 0 ? _compareTaskPriority(a, b) : dateCompare;
+  }
+
+  int _compareTaskPriority(Task a, Task b) {
+    final priorityCompare =
+        _priorityRank(b.priority).compareTo(_priorityRank(a.priority));
+    if (priorityCompare != 0) return priorityCompare;
+    return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+  }
+
+  int _priorityRank(TaskPriority priority) {
+    return switch (priority) {
+      TaskPriority.none => 0,
+      TaskPriority.low => 1,
+      TaskPriority.medium => 2,
+      TaskPriority.high => 3,
+    };
   }
 
   int _countForSmartView(SmartView view) {
@@ -496,17 +653,45 @@ class _NeoHomePageState extends State<NeoHomePage> {
     });
   }
 
+  void _updateTaskSearch(String value) {
+    setState(() => _taskSearchQuery = value);
+  }
+
+  void _updateTaskSort(TaskSortMode value) {
+    setState(() => _taskSortMode = value);
+  }
+
   void _addTask(String title, DateTime? date, TaskPriority priority,
-      DateTime? endDate, String? listId) {
-    final task = Task(
-      title: title,
-      date: date,
-      endDate: endDate,
-      priority: priority,
-      listId: listId,
-    );
-    _taskBox.put(task.id, task);
-    setState(() => _tasks = [..._tasks, task]);
+      DateTime? endDate, String? listId, RepeatPreset repeatPreset) {
+    final firstDate =
+        date ?? (_defaultTaskDateToday ? _dateOnly(DateTime.now()) : null);
+    final repeatCount = switch (repeatPreset) {
+      RepeatPreset.none => 1,
+      RepeatPreset.daily => 7,
+      RepeatPreset.weekly => 4,
+    };
+    final createdTasks = List.generate(repeatCount, (index) {
+      final taskDate = firstDate == null
+          ? null
+          : switch (repeatPreset) {
+              RepeatPreset.none => firstDate,
+              RepeatPreset.daily => firstDate.add(Duration(days: index)),
+              RepeatPreset.weekly => firstDate.add(Duration(days: index * 7)),
+            };
+      return Task(
+        id: '${DateTime.now().microsecondsSinceEpoch}-$index',
+        title: title,
+        date: taskDate,
+        endDate: endDate,
+        priority: priority,
+        listId: listId,
+      );
+    });
+
+    for (final task in createdTasks) {
+      _taskBox.put(task.id, task);
+    }
+    setState(() => _tasks = [..._tasks, ...createdTasks]);
   }
 
   void _updateTask(Task task) {
@@ -642,7 +827,9 @@ class _NeoHomePageState extends State<NeoHomePage> {
     };
 
     await File(file).writeAsString(jsonEncode(payload));
+    await _settingsBox.put(_lastBackupAtKey, DateTime.now().toIso8601String());
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('备份已导出')));
   }
@@ -661,7 +848,26 @@ class _NeoHomePageState extends State<NeoHomePage> {
     }
     if (content.isEmpty) return;
 
-    final data = jsonDecode(content) as Map<String, dynamic>;
+    late final Object? decoded;
+    try {
+      decoded = jsonDecode(content);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('备份文件无法解析')),
+      );
+      return;
+    }
+    if (decoded is! Map<String, dynamic> ||
+        decoded['tasks'] is! List ||
+        decoded['lists'] is! List) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('备份文件格式不正确')),
+      );
+      return;
+    }
+    final data = decoded;
     await _taskBox.clear();
     await _listBox.clear();
 
@@ -712,6 +918,9 @@ class _NeoHomePageState extends State<NeoHomePage> {
     }
 
     _loadData();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('备份已导入并校验通过')));
   }
 
   Future<void> _clearAllLocalData() async {
@@ -766,6 +975,14 @@ class _NeoHomePageState extends State<NeoHomePage> {
       _longBreakAfterSessions = 4;
       _soundEffects = true;
       _autoStartBreak = false;
+      _dailyGoalMinutes = 120;
+      _defaultStartPage = DefaultStartPage.focus;
+      _defaultTaskDateToday = true;
+      _backupReminder = true;
+      _reduceMotion = false;
+      _taskSearchQuery = '';
+      _taskSortMode = TaskSortMode.date;
+      _focusStatsSubjectFilter = null;
       _completedFocusSessions = 0;
     });
     _loadData();
@@ -856,11 +1073,18 @@ class _NeoHomePageState extends State<NeoHomePage> {
     final isDesktop = width > 1100;
     final title = _headerTitle();
     final focusLast7DaySeconds = _focusLast7DaySeconds;
-    final focusStatsChartSeconds = _focusStatsChartSeconds;
     final focusWeekSeconds = focusLast7DaySeconds.fold<int>(
       0,
       (total, seconds) => total + seconds,
     );
+    final filteredFocusChartSeconds = _focusStatsChartSeconds;
+    final filteredFocusWeekSeconds = _focusStatsSubjectFilter == null
+        ? focusWeekSeconds
+        : List.generate(7, (index) {
+            final today = _dateOnly(DateTime.now());
+            final date = today.subtract(Duration(days: 6 - index));
+            return _focusSecondsForDate(date);
+          }).fold<int>(0, (total, seconds) => total + seconds);
     final headerActionLabel = switch (_viewMode) {
       ViewMode.focus => '任务',
       ViewMode.list => '日历',
@@ -885,16 +1109,21 @@ class _NeoHomePageState extends State<NeoHomePage> {
           statsRange: _focusStatsRange,
           focusDurationMinutes: _focusDurationMinutes,
           completedSessions: _completedFocusSessions,
-          totalFocusSeconds: _focusTotalSeconds,
-          todayFocusSeconds: _focusTodaySeconds,
-          weekFocusSeconds: focusWeekSeconds,
-          chartSeconds: focusStatsChartSeconds,
+          totalFocusSeconds: _filteredFocusTotalSeconds,
+          todayFocusSeconds: _filteredFocusTodaySeconds,
+          weekFocusSeconds: filteredFocusWeekSeconds,
+          chartSeconds: filteredFocusChartSeconds,
+          dailyGoalMinutes: _dailyGoalMinutes,
+          streakDays: _focusStreakDays,
           statsRangeLabel: _focusStatsRangeLabel,
           distributionItems: _focusDistributionItems,
+          subjects: _focusSubjects,
+          selectedSubject: _focusStatsSubjectFilter,
           onToggleTimer: _toggleFocusTimer,
           onEndSession: _endFocusSession,
           onTabChanged: _changeFocusTab,
           onSubjectChanged: _updateFocusSubject,
+          onStatsSubjectChanged: _changeFocusStatsSubject,
           onStatsRangeChanged: _changeFocusStatsRange,
           onPreviousStatsRange: () => _shiftFocusStatsRange(-1),
           onNextStatsRange:
@@ -907,12 +1136,23 @@ class _NeoHomePageState extends State<NeoHomePage> {
           longBreakAfterSessions: _longBreakAfterSessions,
           soundEffects: _soundEffects,
           autoStartBreak: _autoStartBreak,
+          dailyGoalMinutes: _dailyGoalMinutes,
+          defaultStartPage: _defaultStartPage,
+          defaultTaskDateToday: _defaultTaskDateToday,
+          backupReminder: _backupReminder,
+          reduceMotion: _reduceMotion,
+          backupHint: _backupHint,
           onFocusDurationChanged: _updateFocusDuration,
           onShortBreakChanged: _updateShortBreak,
           onLongBreakChanged: _updateLongBreak,
           onLongBreakAfterChanged: _updateLongBreakAfter,
           onSoundEffectsChanged: _updateSoundEffects,
           onAutoStartBreakChanged: _updateAutoStartBreak,
+          onDailyGoalChanged: _updateDailyGoal,
+          onDefaultStartPageChanged: _updateDefaultStartPage,
+          onDefaultTaskDateTodayChanged: _updateDefaultTaskDateToday,
+          onBackupReminderChanged: _updateBackupReminder,
+          onReduceMotionChanged: _updateReduceMotion,
           onExport: _exportData,
           onImport: _importData,
           onClearData: _clearAllLocalData,
@@ -923,6 +1163,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
           taskLists: _taskLists,
           selectedTaskId: _selectedTaskId,
           isMobile: isMobile,
+          searchQuery: _taskSearchQuery,
+          sortMode: _taskSortMode,
+          onSearchChanged: _updateTaskSearch,
+          onSortChanged: _updateTaskSort,
           onSelectTask: (id) {
             final task = _tasks.firstWhere((item) => item.id == id);
             _openTaskDetails(task, isMobile: isMobile);
@@ -1033,8 +1277,12 @@ class _NeoHomePageState extends State<NeoHomePage> {
                     Container(width: 2, color: NeoBrutalism.ink),
                   Expanded(
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 260),
-                      reverseDuration: const Duration(milliseconds: 180),
+                      duration: _reduceMotion
+                          ? Duration.zero
+                          : const Duration(milliseconds: 260),
+                      reverseDuration: _reduceMotion
+                          ? Duration.zero
+                          : const Duration(milliseconds: 180),
                       switchInCurve: Curves.easeOutCubic,
                       switchOutCurve: Curves.easeInCubic,
                       layoutBuilder: (currentChild, previousChildren) {
@@ -1088,8 +1336,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
         ),
       ),
       floatingActionButton: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
-        reverseDuration: const Duration(milliseconds: 150),
+        duration:
+            _reduceMotion ? Duration.zero : const Duration(milliseconds: 220),
+        reverseDuration:
+            _reduceMotion ? Duration.zero : const Duration(milliseconds: 150),
         switchInCurve: Curves.easeOutBack,
         switchOutCurve: Curves.easeInCubic,
         transitionBuilder: (child, animation) {

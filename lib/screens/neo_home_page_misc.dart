@@ -31,12 +31,17 @@ class _FocusPanel extends StatelessWidget {
     required this.todayFocusSeconds,
     required this.weekFocusSeconds,
     required this.chartSeconds,
+    required this.dailyGoalMinutes,
+    required this.streakDays,
     required this.statsRangeLabel,
     required this.distributionItems,
+    required this.subjects,
+    required this.selectedSubject,
     required this.onToggleTimer,
     required this.onEndSession,
     required this.onTabChanged,
     required this.onSubjectChanged,
+    required this.onStatsSubjectChanged,
     required this.onStatsRangeChanged,
     required this.onPreviousStatsRange,
     required this.onNextStatsRange,
@@ -54,12 +59,17 @@ class _FocusPanel extends StatelessWidget {
   final int todayFocusSeconds;
   final int weekFocusSeconds;
   final List<int> chartSeconds;
+  final int dailyGoalMinutes;
+  final int streakDays;
   final String statsRangeLabel;
   final List<_FocusDistributionItem> distributionItems;
+  final List<String> subjects;
+  final String? selectedSubject;
   final VoidCallback onToggleTimer;
   final VoidCallback onEndSession;
   final ValueChanged<FocusTab> onTabChanged;
   final ValueChanged<String> onSubjectChanged;
+  final ValueChanged<String?> onStatsSubjectChanged;
   final ValueChanged<FocusStatsRange> onStatsRangeChanged;
   final VoidCallback onPreviousStatsRange;
   final VoidCallback? onNextStatsRange;
@@ -98,9 +108,14 @@ class _FocusPanel extends StatelessWidget {
               mode: usePomodoro ? '番茄' : '计时',
               statsRange: statsRange,
               chartSeconds: chartSeconds,
+              dailyGoalMinutes: dailyGoalMinutes,
+              streakDays: streakDays,
               rangeLabel: statsRangeLabel,
               distributionItems: distributionItems,
+              subjects: subjects,
+              selectedSubject: selectedSubject,
               onRangeChanged: onStatsRangeChanged,
+              onSubjectChanged: onStatsSubjectChanged,
               onPreviousRange: onPreviousStatsRange,
               onNextRange: onNextStatsRange,
             )
@@ -456,9 +471,14 @@ class _FocusStatsPanel extends StatelessWidget {
     required this.mode,
     required this.statsRange,
     required this.chartSeconds,
+    required this.dailyGoalMinutes,
+    required this.streakDays,
     required this.rangeLabel,
     required this.distributionItems,
+    required this.subjects,
+    required this.selectedSubject,
     required this.onRangeChanged,
+    required this.onSubjectChanged,
     required this.onPreviousRange,
     required this.onNextRange,
   });
@@ -470,9 +490,14 @@ class _FocusStatsPanel extends StatelessWidget {
   final String mode;
   final FocusStatsRange statsRange;
   final List<int> chartSeconds;
+  final int dailyGoalMinutes;
+  final int streakDays;
   final String rangeLabel;
   final List<_FocusDistributionItem> distributionItems;
+  final List<String> subjects;
+  final String? selectedSubject;
   final ValueChanged<FocusStatsRange> onRangeChanged;
+  final ValueChanged<String?> onSubjectChanged;
   final VoidCallback onPreviousRange;
   final VoidCallback? onNextRange;
 
@@ -488,6 +513,10 @@ class _FocusStatsPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final chartData = chartSeconds.isEmpty ? <int>[0] : chartSeconds;
     final averageSeconds = sessions == 0 ? 0 : totalSeconds ~/ sessions;
+    final goalSeconds = dailyGoalMinutes * 60;
+    final goalPercent = goalSeconds == 0
+        ? 0
+        : ((todaySeconds / goalSeconds) * 100).clamp(0, 999).round();
     final distributionTotalSeconds = distributionItems.fold<int>(
       0,
       (total, item) => total + item.seconds,
@@ -516,6 +545,14 @@ class _FocusStatsPanel extends StatelessWidget {
             selected: statsRange,
             onChanged: onRangeChanged,
           ),
+          if (subjects.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _FocusSubjectFilter(
+              subjects: subjects,
+              selectedSubject: selectedSubject,
+              onChanged: onSubjectChanged,
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [
@@ -534,6 +571,24 @@ class _FocusStatsPanel extends StatelessWidget {
                   label: '平均 / 次',
                   value: _studyTimeLabel(averageSeconds),
                   color: NeoBrutalism.cyan,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _FocusStat(
+                  label: '今日目标',
+                  value: '$goalPercent%',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FocusStat(
+                  label: '连续天数',
+                  value: '$streakDays 天',
                 ),
               ),
             ],
@@ -645,6 +700,44 @@ class _FocusStatsRangeToggle extends StatelessWidget {
             onTap: () => onChanged(FocusStatsRange.month),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FocusSubjectFilter extends StatelessWidget {
+  const _FocusSubjectFilter({
+    required this.subjects,
+    required this.selectedSubject,
+    required this.onChanged,
+  });
+
+  final List<String> subjects;
+  final String? selectedSubject;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: DropdownButton<String?>(
+        value: selectedSubject,
+        isExpanded: true,
+        underline: const SizedBox.shrink(),
+        items: [
+          const DropdownMenuItem<String?>(
+            value: null,
+            child: Text('全部科目'),
+          ),
+          ...subjects.map((subject) {
+            return DropdownMenuItem<String?>(
+              value: subject,
+              child: Text(subject),
+            );
+          }),
+        ],
+        onChanged: onChanged,
       ),
     );
   }
@@ -1029,12 +1122,23 @@ class _SettingsPanel extends StatelessWidget {
     required this.longBreakAfterSessions,
     required this.soundEffects,
     required this.autoStartBreak,
+    required this.dailyGoalMinutes,
+    required this.defaultStartPage,
+    required this.defaultTaskDateToday,
+    required this.backupReminder,
+    required this.reduceMotion,
+    required this.backupHint,
     required this.onFocusDurationChanged,
     required this.onShortBreakChanged,
     required this.onLongBreakChanged,
     required this.onLongBreakAfterChanged,
     required this.onSoundEffectsChanged,
     required this.onAutoStartBreakChanged,
+    required this.onDailyGoalChanged,
+    required this.onDefaultStartPageChanged,
+    required this.onDefaultTaskDateTodayChanged,
+    required this.onBackupReminderChanged,
+    required this.onReduceMotionChanged,
     required this.onExport,
     required this.onImport,
     required this.onClearData,
@@ -1046,12 +1150,23 @@ class _SettingsPanel extends StatelessWidget {
   final int longBreakAfterSessions;
   final bool soundEffects;
   final bool autoStartBreak;
+  final int dailyGoalMinutes;
+  final DefaultStartPage defaultStartPage;
+  final bool defaultTaskDateToday;
+  final bool backupReminder;
+  final bool reduceMotion;
+  final String backupHint;
   final ValueChanged<int> onFocusDurationChanged;
   final ValueChanged<int> onShortBreakChanged;
   final ValueChanged<int> onLongBreakChanged;
   final ValueChanged<int> onLongBreakAfterChanged;
   final ValueChanged<bool> onSoundEffectsChanged;
   final ValueChanged<bool> onAutoStartBreakChanged;
+  final ValueChanged<int> onDailyGoalChanged;
+  final ValueChanged<DefaultStartPage> onDefaultStartPageChanged;
+  final ValueChanged<bool> onDefaultTaskDateTodayChanged;
+  final ValueChanged<bool> onBackupReminderChanged;
+  final ValueChanged<bool> onReduceMotionChanged;
   final VoidCallback onExport;
   final VoidCallback onImport;
   final VoidCallback onClearData;
@@ -1118,15 +1233,42 @@ class _SettingsPanel extends StatelessWidget {
                     value: autoStartBreak,
                     onChanged: onAutoStartBreakChanged,
                   ),
+                  _StepperSetting(
+                    label: '今日目标',
+                    value: dailyGoalMinutes,
+                    suffix: 'MIN',
+                    min: 15,
+                    max: 480,
+                    step: 15,
+                    onChanged: onDailyGoalChanged,
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
-              const _SettingsSection(
+              _SettingsSection(
                 index: '02',
                 title: '任务系统',
                 children: [
-                  _SettingsInfoRow(label: '默认启动页', value: '专注'),
-                  _SettingsInfoRow(label: '默认任务日期', value: '今天'),
+                  _SettingsChoiceRow<DefaultStartPage>(
+                    label: '默认启动页',
+                    value: defaultStartPage,
+                    values: DefaultStartPage.values,
+                    labelBuilder: (value) =>
+                        value == DefaultStartPage.focus ? '专注' : '任务',
+                    onChanged: onDefaultStartPageChanged,
+                  ),
+                  _ToggleSetting(
+                    label: '新任务默认今天',
+                    icon: Icons.today,
+                    value: defaultTaskDateToday,
+                    onChanged: onDefaultTaskDateTodayChanged,
+                  ),
+                  _ToggleSetting(
+                    label: '减少动效',
+                    icon: Icons.motion_photos_off_outlined,
+                    value: reduceMotion,
+                    onChanged: onReduceMotionChanged,
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
@@ -1154,6 +1296,14 @@ class _SettingsPanel extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  _ToggleSetting(
+                    label: '备份提醒',
+                    icon: Icons.notifications_active_outlined,
+                    value: backupReminder,
+                    onChanged: onBackupReminderChanged,
+                  ),
+                  _SettingsInfoRow(label: '备份状态', value: backupHint),
                 ],
               ),
               const SizedBox(height: 32),
@@ -1399,6 +1549,46 @@ class _SettingsInfoRow extends StatelessWidget {
   }
 }
 
+class _SettingsChoiceRow<T> extends StatelessWidget {
+  const _SettingsChoiceRow({
+    required this.label,
+    required this.value,
+    required this.values,
+    required this.labelBuilder,
+    required this.onChanged,
+  });
+
+  final String label;
+  final T value;
+  final List<T> values;
+  final String Function(T) labelBuilder;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsRow(
+      label: label,
+      trailing: Container(
+        decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: DropdownButton<T>(
+          value: value,
+          underline: const SizedBox.shrink(),
+          items: values.map((item) {
+            return DropdownMenuItem<T>(
+              value: item,
+              child: Text(labelBuilder(item), style: NeoBrutalism.label),
+            );
+          }).toList(),
+          onChanged: (item) {
+            if (item != null) onChanged(item);
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
     required this.label,
@@ -1638,8 +1828,8 @@ class _QuickAddSheet extends StatefulWidget {
 
   final String? currentListId;
   final List<TaskList> allLists;
-  final void Function(String, DateTime?, TaskPriority, DateTime?, String?)
-      onAdd;
+  final void Function(
+      String, DateTime?, TaskPriority, DateTime?, String?, RepeatPreset) onAdd;
 
   @override
   State<_QuickAddSheet> createState() => _QuickAddSheetState();
@@ -1648,6 +1838,7 @@ class _QuickAddSheet extends StatefulWidget {
 class _QuickAddSheetState extends State<_QuickAddSheet> {
   final TextEditingController _controller = TextEditingController();
   TaskPriority _priority = TaskPriority.none;
+  RepeatPreset _repeatPreset = RepeatPreset.none;
   DateTime? _date;
   String? _listId;
 
@@ -1657,6 +1848,14 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
       TaskPriority.low => '低',
       TaskPriority.medium => '中',
       TaskPriority.high => '高',
+    };
+  }
+
+  String _repeatLabel(RepeatPreset repeat) {
+    return switch (repeat) {
+      RepeatPreset.none => '不重复',
+      RepeatPreset.daily => '每天 7 次',
+      RepeatPreset.weekly => '每周 4 次',
     };
   }
 
@@ -1776,6 +1975,28 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration:
+                      NeoBrutalism.flatCard(color: NeoBrutalism.background),
+                  child: DropdownButton<RepeatPreset>(
+                    value: _repeatPreset,
+                    isExpanded: true,
+                    underline: const SizedBox.shrink(),
+                    items: RepeatPreset.values.map((repeat) {
+                      return DropdownMenuItem<RepeatPreset>(
+                        value: repeat,
+                        child: Text(_repeatLabel(repeat)),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _repeatPreset = value);
+                      }
+                    },
+                  ),
+                ),
                 const SizedBox(height: 18),
                 Row(
                   children: [
@@ -1790,7 +2011,8 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                         onTap: () {
                           final title = _controller.text.trim();
                           if (title.isEmpty) return;
-                          widget.onAdd(title, _date, _priority, null, _listId);
+                          widget.onAdd(title, _date, _priority, null, _listId,
+                              _repeatPreset);
                           Navigator.pop(context);
                         },
                       ),

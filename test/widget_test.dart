@@ -13,6 +13,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:litasker/main.dart';
 import 'package:litasker/models/task.dart';
 import 'package:litasker/models/task_list.dart';
+import 'package:litasker/screens/neo_home_page.dart';
 
 void main() {
   setUpAll(() async {
@@ -29,6 +30,15 @@ void main() {
     if (!Hive.isBoxOpen('taskLists')) {
       await Hive.openBox<TaskList>('taskLists');
     }
+    if (!Hive.isBoxOpen('settings')) {
+      await Hive.openBox('settings');
+    }
+  });
+
+  setUp(() async {
+    await Hive.box<Task>('tasks').clear();
+    await Hive.box<TaskList>('taskLists').clear();
+    await Hive.box('settings').clear();
   });
 
   testWidgets('app shows splash branding', (WidgetTester tester) async {
@@ -37,5 +47,18 @@ void main() {
     expect(find.text('认真计划。漂亮完成。'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('settings screen shows productivity options',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: NeoHomePage()));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.tap(find.byIcon(Icons.settings));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('今日目标'), findsOneWidget);
+    expect(find.text('默认启动页'), findsOneWidget);
+    expect(find.text('备份提醒'), findsOneWidget);
   });
 }
