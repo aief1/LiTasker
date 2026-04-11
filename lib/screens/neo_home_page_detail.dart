@@ -26,96 +26,130 @@ class _TaskCard extends StatelessWidget {
         : taskLists.where((item) => item.id == task.listId).firstOrNull;
     final accent =
         task.isDone ? NeoBrutalism.green : _priorityColor(task.priority);
+    final meta = [
+      if (list != null) list.name.toUpperCase(),
+      _dateLabel(task.date),
+    ].join('\n');
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 18),
+        margin: const EdgeInsets.only(bottom: 12),
         decoration: selected
-            ? NeoBrutalism.card(color: accent.withValues(alpha: 0.22))
-            : NeoBrutalism.card(color: NeoBrutalism.paper),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            ? NeoBrutalism.card(color: NeoBrutalism.paper)
+            : NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: onToggleDone,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: NeoBrutalism.flatCard(
-                        color: task.isDone
-                            ? NeoBrutalism.green
-                            : NeoBrutalism.paper,
+              Container(width: 8, color: accent),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: onToggleDone,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: NeoBrutalism.flatCard(
+                            color: task.isDone
+                                ? NeoBrutalism.ink
+                                : NeoBrutalism.paper,
+                          ),
+                          child: task.isDone
+                              ? const Icon(Icons.check,
+                                  size: 17, color: NeoBrutalism.yellow)
+                              : null,
+                        ),
                       ),
-                      child: task.isDone
-                          ? const Icon(Icons.close,
-                              size: 18, color: NeoBrutalism.ink)
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      task.title,
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w700,
-                        height: 1.15,
-                        decoration:
-                            task.isDone ? TextDecoration.lineThrough : null,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.title.toUpperCase(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                height: 1.25,
+                                letterSpacing: 0.2,
+                                decoration: task.isDone
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: task.isDone
+                                    ? NeoBrutalism.ink.withValues(alpha: 0.55)
+                                    : NeoBrutalism.ink,
+                              ),
+                            ),
+                            if (task.description.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                task.description,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      NeoBrutalism.ink.withValues(alpha: 0.65),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    color: NeoBrutalism.paper,
-                    shape: const RoundedRectangleBorder(
-                        side: BorderSide(color: NeoBrutalism.ink, width: 2)),
-                    onSelected: (value) {
-                      if (value == 'delete') {
-                        onDelete();
-                      }
-                      if (value == 'clear') {
-                        onMoveTo(null);
-                      }
-                      if (value.startsWith('list:')) {
-                        onMoveTo(value.substring(5));
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                          value: 'clear', child: Text('Move to Inbox')),
-                      for (final taskList in taskLists)
-                        PopupMenuItem(
-                            value: 'list:${taskList.id}',
-                            child: Text('Move to ${taskList.name}')),
-                      const PopupMenuItem(
-                          value: 'delete', child: Text('Delete')),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 76,
+                        child: Text(
+                          meta,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            height: 1.25,
+                            color: NeoBrutalism.ink,
+                          ),
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        color: NeoBrutalism.paper,
+                        shape: const RoundedRectangleBorder(
+                            side:
+                                BorderSide(color: NeoBrutalism.ink, width: 2)),
+                        onSelected: (value) {
+                          if (value == 'delete') {
+                            onDelete();
+                          }
+                          if (value == 'clear') {
+                            onMoveTo(null);
+                          }
+                          if (value.startsWith('list:')) {
+                            onMoveTo(value.substring(5));
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                              value: 'clear', child: Text('Move to Inbox')),
+                          for (final taskList in taskLists)
+                            PopupMenuItem(
+                                value: 'list:${taskList.id}',
+                                child: Text('Move to ${taskList.name}')),
+                          const PopupMenuItem(
+                              value: 'delete', child: Text('Delete')),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _Tag(label: _priorityLabel(task.priority), color: accent),
-                  if (list != null)
-                    _Tag(label: list.name.toUpperCase(), color: list.color),
-                  _Tag(label: _dateLabel(task.date), color: NeoBrutalism.muted),
-                ],
-              ),
-              if (task.description.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                Text(task.description,
-                    style: NeoBrutalism.body,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis),
-              ],
             ],
           ),
         ),
@@ -335,8 +369,8 @@ class _DetailPanelState extends State<_DetailPanel> {
                                   color: NeoBrutalism.ink, width: 1.5),
                             ),
                             focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                  color: NeoBrutalism.ink, width: 2),
+                              borderSide:
+                                  BorderSide(color: NeoBrutalism.ink, width: 2),
                             ),
                             hintText: 'Write notes in Markdown...',
                           ),
@@ -351,23 +385,6 @@ class _DetailPanelState extends State<_DetailPanel> {
   }
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: NeoBrutalism.flatCard(color: color),
-      child: Text(label,
-          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-    );
-  }
-}
-
 Color _priorityColor(TaskPriority priority) {
   switch (priority) {
     case TaskPriority.high:
@@ -378,19 +395,6 @@ Color _priorityColor(TaskPriority priority) {
       return NeoBrutalism.cyan;
     case TaskPriority.none:
       return NeoBrutalism.muted;
-  }
-}
-
-String _priorityLabel(TaskPriority priority) {
-  switch (priority) {
-    case TaskPriority.high:
-      return 'HIGH';
-    case TaskPriority.medium:
-      return 'MEDIUM';
-    case TaskPriority.low:
-      return 'LOW';
-    case TaskPriority.none:
-      return 'NONE';
   }
 }
 
