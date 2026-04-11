@@ -54,30 +54,43 @@ class _HeaderBar extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0)),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 180),
+                  switchInCurve: Curves.easeOutCubic,
+                  child: Text(title,
+                      key: ValueKey(title),
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0)),
+                ),
               ],
             ),
           ),
           GestureDetector(
             onTap: onSwitchView,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 12 : 14,
                 vertical: 10,
               ),
               decoration: NeoBrutalism.flatCard(
                   color: isCalendar ? NeoBrutalism.cyan : NeoBrutalism.paper),
-              child: Text(actionLabel, style: NeoBrutalism.label),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 140),
+                child: Text(actionLabel,
+                    key: ValueKey(actionLabel), style: NeoBrutalism.label),
+              ),
             ),
           ),
           const SizedBox(width: 10),
           GestureDetector(
             onTap: onSettingsPressed,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOutCubic,
               padding: const EdgeInsets.all(10),
               decoration: NeoBrutalism.flatCard(
                   color: isSettings ? NeoBrutalism.cyan : NeoBrutalism.paper),

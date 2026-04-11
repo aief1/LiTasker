@@ -33,7 +33,9 @@ class _TaskCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
         margin: const EdgeInsets.only(bottom: 12),
         decoration: selected
             ? NeoBrutalism.card(color: NeoBrutalism.paper)
@@ -50,7 +52,9 @@ class _TaskCard extends StatelessWidget {
                     children: [
                       GestureDetector(
                         onTap: onToggleDone,
-                        child: Container(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeOutCubic,
                           width: 26,
                           height: 26,
                           decoration: NeoBrutalism.flatCard(
@@ -58,10 +62,15 @@ class _TaskCard extends StatelessWidget {
                                 ? NeoBrutalism.ink
                                 : NeoBrutalism.paper,
                           ),
-                          child: task.isDone
-                              ? const Icon(Icons.check,
-                                  size: 17, color: NeoBrutalism.yellow)
-                              : null,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 140),
+                            child: task.isDone
+                                ? const Icon(Icons.check,
+                                    key: ValueKey('done'),
+                                    size: 17,
+                                    color: NeoBrutalism.yellow)
+                                : const SizedBox.shrink(key: ValueKey('open')),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),

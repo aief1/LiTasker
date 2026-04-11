@@ -867,6 +867,90 @@ class _NeoHomePageState extends State<NeoHomePage> {
       ViewMode.calendar => '列表',
       ViewMode.settings => '返回',
     };
+    final mainContentKey = ValueKey((
+      _viewMode,
+      _viewMode == ViewMode.focus ? _focusTab : null,
+      _viewMode == ViewMode.list ? _selectedSmartView : null,
+      _viewMode == ViewMode.list ? _selectedListId : null,
+      _viewMode == ViewMode.list ? _showCompleted : null,
+      _viewMode == ViewMode.calendar ? _calendarViewMode : null,
+    ));
+    final mainContent = switch (_viewMode) {
+      ViewMode.focus => _FocusPanel(
+          displayTime: _usePomodoro ? _pomodoroRemaining : _focusElapsed,
+          isRunning: _focusRunning,
+          usePomodoro: _usePomodoro,
+          selectedTab: _focusTab,
+          focusSubject: _focusSubject,
+          statsRange: _focusStatsRange,
+          focusDurationMinutes: _focusDurationMinutes,
+          completedSessions: _completedFocusSessions,
+          totalFocusSeconds: _focusTotalSeconds,
+          todayFocusSeconds: _focusTodaySeconds,
+          weekFocusSeconds: focusWeekSeconds,
+          chartSeconds: focusStatsChartSeconds,
+          statsRangeLabel: _focusStatsRangeLabel,
+          distributionItems: _focusDistributionItems,
+          onToggleTimer: _toggleFocusTimer,
+          onEndSession: _endFocusSession,
+          onTabChanged: _changeFocusTab,
+          onSubjectChanged: _updateFocusSubject,
+          onStatsRangeChanged: _changeFocusStatsRange,
+          onPreviousStatsRange: () => _shiftFocusStatsRange(-1),
+          onNextStatsRange:
+              _canGoNextFocusStatsRange ? () => _shiftFocusStatsRange(1) : null,
+        ),
+      ViewMode.settings => _SettingsPanel(
+          focusDurationMinutes: _focusDurationMinutes,
+          shortBreakMinutes: _shortBreakMinutes,
+          longBreakMinutes: _longBreakMinutes,
+          longBreakAfterSessions: _longBreakAfterSessions,
+          soundEffects: _soundEffects,
+          autoStartBreak: _autoStartBreak,
+          onFocusDurationChanged: _updateFocusDuration,
+          onShortBreakChanged: _updateShortBreak,
+          onLongBreakChanged: _updateLongBreak,
+          onLongBreakAfterChanged: _updateLongBreakAfter,
+          onSoundEffectsChanged: _updateSoundEffects,
+          onAutoStartBreakChanged: _updateAutoStartBreak,
+          onExport: _exportData,
+          onImport: _importData,
+          onClearData: _clearAllLocalData,
+        ),
+      ViewMode.list => _TaskColumn(
+          title: title,
+          tasks: _filteredTasks,
+          taskLists: _taskLists,
+          selectedTaskId: _selectedTaskId,
+          isMobile: isMobile,
+          onSelectTask: (id) {
+            final task = _tasks.firstWhere((item) => item.id == id);
+            _openTaskDetails(task, isMobile: isMobile);
+          },
+          onToggleDone: _toggleDone,
+          onMoveTask: _moveTaskTo,
+          onDeleteTask: _deleteTask,
+        ),
+      ViewMode.calendar => _CalendarPanel(
+          selectedDate: _selectedDate,
+          tasks: _tasks,
+          mode: _calendarViewMode,
+          isMobile: isMobile,
+          onModeChanged: (mode) => setState(() => _calendarViewMode = mode),
+          onDateSelected: (date) => setState(() => _selectedDate = date),
+          onTaskSelected: (id) {
+            final task = _tasks.firstWhere((item) => item.id == id);
+            if (isMobile) {
+              _openTaskDetails(task, isMobile: true);
+            } else {
+              setState(() {
+                _selectedTaskId = id;
+                _viewMode = ViewMode.list;
+              });
+            }
+          },
+        ),
+    };
 
     return Scaffold(
       drawer: isMobile
@@ -948,92 +1032,36 @@ class _NeoHomePageState extends State<NeoHomePage> {
                   if (!isMobile && _viewMode != ViewMode.settings)
                     Container(width: 2, color: NeoBrutalism.ink),
                   Expanded(
-                    child: _viewMode == ViewMode.focus
-                        ? _FocusPanel(
-                            displayTime: _usePomodoro
-                                ? _pomodoroRemaining
-                                : _focusElapsed,
-                            isRunning: _focusRunning,
-                            usePomodoro: _usePomodoro,
-                            selectedTab: _focusTab,
-                            focusSubject: _focusSubject,
-                            statsRange: _focusStatsRange,
-                            focusDurationMinutes: _focusDurationMinutes,
-                            completedSessions: _completedFocusSessions,
-                            totalFocusSeconds: _focusTotalSeconds,
-                            todayFocusSeconds: _focusTodaySeconds,
-                            weekFocusSeconds: focusWeekSeconds,
-                            chartSeconds: focusStatsChartSeconds,
-                            statsRangeLabel: _focusStatsRangeLabel,
-                            distributionItems: _focusDistributionItems,
-                            onToggleTimer: _toggleFocusTimer,
-                            onEndSession: _endFocusSession,
-                            onTabChanged: _changeFocusTab,
-                            onSubjectChanged: _updateFocusSubject,
-                            onStatsRangeChanged: _changeFocusStatsRange,
-                            onPreviousStatsRange: () =>
-                                _shiftFocusStatsRange(-1),
-                            onNextStatsRange: _canGoNextFocusStatsRange
-                                ? () => _shiftFocusStatsRange(1)
-                                : null,
-                          )
-                        : _viewMode == ViewMode.settings
-                            ? _SettingsPanel(
-                                focusDurationMinutes: _focusDurationMinutes,
-                                shortBreakMinutes: _shortBreakMinutes,
-                                longBreakMinutes: _longBreakMinutes,
-                                longBreakAfterSessions: _longBreakAfterSessions,
-                                soundEffects: _soundEffects,
-                                autoStartBreak: _autoStartBreak,
-                                onFocusDurationChanged: _updateFocusDuration,
-                                onShortBreakChanged: _updateShortBreak,
-                                onLongBreakChanged: _updateLongBreak,
-                                onLongBreakAfterChanged: _updateLongBreakAfter,
-                                onSoundEffectsChanged: _updateSoundEffects,
-                                onAutoStartBreakChanged: _updateAutoStartBreak,
-                                onExport: _exportData,
-                                onImport: _importData,
-                                onClearData: _clearAllLocalData,
-                              )
-                            : _viewMode == ViewMode.list
-                                ? _TaskColumn(
-                                    title: title,
-                                    tasks: _filteredTasks,
-                                    taskLists: _taskLists,
-                                    selectedTaskId: _selectedTaskId,
-                                    isMobile: isMobile,
-                                    onSelectTask: (id) {
-                                      final task = _tasks
-                                          .firstWhere((item) => item.id == id);
-                                      _openTaskDetails(task,
-                                          isMobile: isMobile);
-                                    },
-                                    onToggleDone: _toggleDone,
-                                    onMoveTask: _moveTaskTo,
-                                    onDeleteTask: _deleteTask,
-                                  )
-                                : _CalendarPanel(
-                                    selectedDate: _selectedDate,
-                                    tasks: _tasks,
-                                    mode: _calendarViewMode,
-                                    isMobile: isMobile,
-                                    onModeChanged: (mode) => setState(
-                                        () => _calendarViewMode = mode),
-                                    onDateSelected: (date) =>
-                                        setState(() => _selectedDate = date),
-                                    onTaskSelected: (id) {
-                                      final task = _tasks
-                                          .firstWhere((item) => item.id == id);
-                                      if (isMobile) {
-                                        _openTaskDetails(task, isMobile: true);
-                                      } else {
-                                        setState(() {
-                                          _selectedTaskId = id;
-                                          _viewMode = ViewMode.list;
-                                        });
-                                      }
-                                    },
-                                  ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 260),
+                      reverseDuration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      layoutBuilder: (currentChild, previousChildren) {
+                        return Stack(
+                          alignment: Alignment.topCenter,
+                          children: [
+                            ...previousChildren,
+                            if (currentChild != null) currentChild,
+                          ],
+                        );
+                      },
+                      transitionBuilder: (child, animation) {
+                        final slide = Tween<Offset>(
+                          begin: const Offset(0.035, 0),
+                          end: Offset.zero,
+                        ).animate(animation);
+
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(position: slide, child: child),
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: mainContentKey,
+                        child: mainContent,
+                      ),
+                    ),
                   ),
                   if (isDesktop &&
                       _viewMode == ViewMode.list &&
@@ -1059,27 +1087,41 @@ class _NeoHomePageState extends State<NeoHomePage> {
           ],
         ),
       ),
-      floatingActionButton: _viewMode == ViewMode.list
-          ? GestureDetector(
-              onTapDown: (_) => setState(() => _fabPressed = true),
-              onTapCancel: () => setState(() => _fabPressed = false),
-              onTapUp: (_) async {
-                setState(() => _fabPressed = false);
-                await _showQuickAdd();
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 90),
-                transform: Matrix4.translationValues(
-                    _fabPressed ? 4 : 0, _fabPressed ? 4 : 0, 0),
-                width: 74,
-                height: 74,
-                decoration: _fabPressed
-                    ? NeoBrutalism.flatCard(color: NeoBrutalism.green)
-                    : NeoBrutalism.card(color: NeoBrutalism.green),
-                child: const Icon(Icons.add, size: 36, color: NeoBrutalism.ink),
-              ),
-            )
-          : null,
+      floatingActionButton: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        reverseDuration: const Duration(milliseconds: 150),
+        switchInCurve: Curves.easeOutBack,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(scale: animation, child: child),
+          );
+        },
+        child: _viewMode == ViewMode.list
+            ? GestureDetector(
+                key: const ValueKey('quick-add-fab'),
+                onTapDown: (_) => setState(() => _fabPressed = true),
+                onTapCancel: () => setState(() => _fabPressed = false),
+                onTapUp: (_) async {
+                  setState(() => _fabPressed = false);
+                  await _showQuickAdd();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 90),
+                  transform: Matrix4.translationValues(
+                      _fabPressed ? 4 : 0, _fabPressed ? 4 : 0, 0),
+                  width: 74,
+                  height: 74,
+                  decoration: _fabPressed
+                      ? NeoBrutalism.flatCard(color: NeoBrutalism.green)
+                      : NeoBrutalism.card(color: NeoBrutalism.green),
+                  child:
+                      const Icon(Icons.add, size: 36, color: NeoBrutalism.ink),
+                ),
+              )
+            : const SizedBox.shrink(key: ValueKey('quick-add-fab-empty')),
+      ),
       bottomNavigationBar: isMobile
           ? _BottomNav(
               currentView: _viewMode,
