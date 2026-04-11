@@ -19,32 +19,26 @@ class _StatusChip extends StatelessWidget {
 
 class _FocusPanel extends StatelessWidget {
   const _FocusPanel({
-    required this.now,
-    required this.remaining,
+    required this.displayTime,
     required this.isRunning,
-    required this.isBreakSession,
+    required this.usePomodoro,
     required this.completedSessions,
     required this.currentTask,
     required this.onToggleTimer,
     required this.onEndSession,
+    required this.onToggleMode,
     required this.onOpenTasks,
   });
 
-  final DateTime now;
-  final Duration remaining;
+  final Duration displayTime;
   final bool isRunning;
-  final bool isBreakSession;
+  final bool usePomodoro;
   final int completedSessions;
   final Task? currentTask;
   final VoidCallback onToggleTimer;
   final VoidCallback onEndSession;
+  final VoidCallback onToggleMode;
   final VoidCallback onOpenTasks;
-
-  String _timeLabel(DateTime value) {
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
 
   String _durationLabel(Duration value) {
     final minutes = value.inMinutes.toString().padLeft(2, '0');
@@ -54,61 +48,46 @@ class _FocusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalSeconds = (isBreakSession ? 5 : 25) * 60;
-    final elapsed = totalSeconds - remaining.inSeconds;
-    final progress = (elapsed / totalSeconds).clamp(0.0, 1.0);
-    final status = isBreakSession ? 'BREAK' : 'FOCUS';
+    const totalSeconds = 25 * 60;
+    final progress = usePomodoro
+        ? ((totalSeconds - displayTime.inSeconds) / totalSeconds)
+            .clamp(0.0, 1.0)
+        : ((displayTime.inSeconds % totalSeconds) / totalSeconds)
+            .clamp(0.0, 1.0);
+    final mode = usePomodoro ? 'POMODORO' : 'TIMER';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: _FocusInfoBlock(
-                  label: 'STATUS',
-                  value: isRunning ? status : 'PAUSED',
-                ),
-              ),
-              const SizedBox(width: 20),
-              _FocusInfoBlock(
-                label: 'LOCAL TIME',
-                value: _timeLabel(now),
-                alignRight: true,
-              ),
-            ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: _FocusModeToggle(
+              usePomodoro: usePomodoro,
+              enabled: !isRunning,
+              onTap: onToggleMode,
+            ),
           ),
-          const SizedBox(height: 34),
+          const SizedBox(height: 24),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 42),
+            padding: const EdgeInsets.symmetric(vertical: 50),
             decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
             child: Column(
               children: [
                 Text(
-                  _timeLabel(now),
+                  _durationLabel(displayTime),
                   style: const TextStyle(
-                    fontSize: 68,
+                    fontSize: 82,
                     fontWeight: FontWeight.w900,
                     height: 0.9,
                     letterSpacing: -3,
                   ),
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  _durationLabel(remaining),
-                  style: const TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                    letterSpacing: -1.4,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(status, style: NeoBrutalism.label),
+                const SizedBox(height: 14),
+                Text(isRunning ? 'RUNNING / $mode' : 'READY / $mode',
+                    style: NeoBrutalism.label),
               ],
             ),
           ),
@@ -134,8 +113,8 @@ class _FocusPanel extends StatelessWidget {
             child: Column(
               children: [
                 _FocusActionButton(
-                  label: isRunning ? 'PAUSE' : 'START',
-                  icon: isRunning ? Icons.pause : Icons.play_arrow,
+                  label: 'START',
+                  icon: Icons.play_arrow,
                   color: NeoBrutalism.paper,
                   onTap: onToggleTimer,
                 ),
@@ -161,7 +140,7 @@ class _FocusPanel extends StatelessWidget {
               Expanded(
                 child: _FocusStat(
                   label: 'MODE',
-                  value: isBreakSession ? 'REST' : 'WORK',
+                  value: usePomodoro ? 'POMO' : 'TIME',
                 ),
               ),
             ],
@@ -172,30 +151,52 @@ class _FocusPanel extends StatelessWidget {
   }
 }
 
-class _FocusInfoBlock extends StatelessWidget {
-  const _FocusInfoBlock({
-    required this.label,
-    required this.value,
-    this.alignRight = false,
+class _FocusModeToggle extends StatelessWidget {
+  const _FocusModeToggle({
+    required this.usePomodoro,
+    required this.enabled,
+    required this.onTap,
   });
 
-  final String label;
-  final String value;
-  final bool alignRight;
+  final bool usePomodoro;
+  final bool enabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment:
-          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Text(label, style: NeoBrutalism.label),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Opacity(
+        opacity: enabled ? 1 : 0.45,
+        child: Container(
+          width: 118,
+          height: 38,
+          decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: double.infinity,
+                  color: usePomodoro ? NeoBrutalism.paper : NeoBrutalism.yellow,
+                  child: Center(
+                    child: Text('TIME', style: NeoBrutalism.label),
+                  ),
+                ),
+              ),
+              Container(width: 2, color: NeoBrutalism.ink),
+              Expanded(
+                child: Container(
+                  height: double.infinity,
+                  color: usePomodoro ? NeoBrutalism.yellow : NeoBrutalism.paper,
+                  child: Center(
+                    child: Text('POMO', style: NeoBrutalism.label),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -387,12 +388,24 @@ class _BottomNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        height: 48,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        height: selected ? 58 : 44,
+        margin: EdgeInsets.only(top: selected ? 0 : 7),
         decoration: selected
             ? NeoBrutalism.card(color: NeoBrutalism.yellow)
             : NeoBrutalism.flatCard(color: NeoBrutalism.paper),
-        child: Center(child: Text(label, style: NeoBrutalism.label)),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: selected ? 12 : 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.0,
+              color: NeoBrutalism.ink,
+            ),
+          ),
+        ),
       ),
     );
   }

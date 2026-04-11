@@ -38,12 +38,11 @@ class _NeoHomePageState extends State<NeoHomePage> {
   DateTime _selectedDate = DateTime.now();
   CalendarViewMode _calendarViewMode = CalendarViewMode.month;
   bool _fabPressed = false;
-  DateTime _now = DateTime.now();
-  Duration _focusRemaining = const Duration(minutes: 25);
+  Duration _focusElapsed = Duration.zero;
+  Duration _pomodoroRemaining = const Duration(minutes: 25);
   bool _focusRunning = false;
-  bool _isBreakSession = false;
+  bool _usePomodoro = false;
   int _completedFocusSessions = 0;
-  Timer? _clockTimer;
   Timer? _focusTimer;
 
   @override
@@ -52,14 +51,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
     _taskBox = Hive.box<Task>('tasks');
     _listBox = Hive.box<TaskList>('taskLists');
     _loadData();
-    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
   }
 
   @override
   void dispose() {
-    _clockTimer?.cancel();
     _focusTimer?.cancel();
     super.dispose();
   }
@@ -260,38 +255,49 @@ class _NeoHomePageState extends State<NeoHomePage> {
   }
 
   void _toggleFocusTimer() {
-    if (_focusRunning) {
-      _focusTimer?.cancel();
-      setState(() => _focusRunning = false);
-      return;
-    }
+    if (_focusRunning) return;
 
     setState(() => _focusRunning = true);
     _focusTimer?.cancel();
     _focusTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      if (_focusRemaining <= const Duration(seconds: 1)) {
-        setState(() {
-          if (!_isBreakSession) _completedFocusSessions += 1;
-          _isBreakSession = !_isBreakSession;
-          _focusRemaining = _isBreakSession
-              ? const Duration(minutes: 5)
-              : const Duration(minutes: 25);
-          _focusRunning = false;
-        });
-        _focusTimer?.cancel();
+      if (_usePomodoro) {
+        if (_pomodoroRemaining <= const Duration(seconds: 1)) {
+          setState(() {
+            _completedFocusSessions += 1;
+            _focusRunning = false;
+            _pomodoroRemaining = const Duration(minutes: 25);
+          });
+          _focusTimer?.cancel();
+          return;
+        }
+        setState(() => _pomodoroRemaining -= const Duration(seconds: 1));
         return;
       }
-      setState(() => _focusRemaining -= const Duration(seconds: 1));
+
+      setState(() => _focusElapsed += const Duration(seconds: 1));
+    });
+  }
+
+  void _toggleFocusMode() {
+    if (_focusRunning) return;
+    setState(() {
+      _usePomodoro = !_usePomodoro;
+      _focusElapsed = Duration.zero;
+      _pomodoroRemaining = const Duration(minutes: 25);
     });
   }
 
   void _endFocusSession() {
+    final hadProgress = _usePomodoro
+        ? _pomodoroRemaining < const Duration(minutes: 25)
+        : _focusElapsed > Duration.zero;
     _focusTimer?.cancel();
     setState(() {
+      if (hadProgress) _completedFocusSessions += 1;
       _focusRunning = false;
-      _isBreakSession = false;
-      _focusRemaining = const Duration(minutes: 25);
+      _focusElapsed = Duration.zero;
+      _pomodoroRemaining = const Duration(minutes: 25);
     });
   }
 
@@ -522,14 +528,16 @@ class _NeoHomePageState extends State<NeoHomePage> {
                   Expanded(
                     child: _viewMode == ViewMode.focus
                         ? _FocusPanel(
-                            now: _now,
-                            remaining: _focusRemaining,
+                            displayTime: _usePomodoro
+                                ? _pomodoroRemaining
+                                : _focusElapsed,
                             isRunning: _focusRunning,
-                            isBreakSession: _isBreakSession,
+                            usePomodoro: _usePomodoro,
                             completedSessions: _completedFocusSessions,
                             currentTask: _focusTask,
                             onToggleTimer: _toggleFocusTimer,
                             onEndSession: _endFocusSession,
+                            onToggleMode: _toggleFocusMode,
                             onOpenTasks: () =>
                                 setState(() => _viewMode = ViewMode.list),
                           )
