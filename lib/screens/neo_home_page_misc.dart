@@ -150,7 +150,7 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 30),
             const Text('EMPTY',
                 style: TextStyle(
-                    fontSize: 56, fontWeight: FontWeight.w900, height: 0.95)),
+                    fontSize: 48, fontWeight: FontWeight.w900, height: 0.95)),
             const SizedBox(height: 20),
             Container(width: 3, height: 96, color: NeoBrutalism.ink),
             const SizedBox(height: 20),

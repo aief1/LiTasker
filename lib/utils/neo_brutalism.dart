@@ -49,7 +49,7 @@ class NeoBrutalism {
   static TextStyle get label => const TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w900,
-        letterSpacing: 1.4,
+        letterSpacing: 1.0,
         color: ink,
       );
 

@@ -42,7 +42,7 @@ class _HeaderBar extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.4)),
+                        letterSpacing: 1.0)),
               ],
             ),
           ),
@@ -113,7 +113,7 @@ class _SidebarPanel extends StatelessWidget {
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1.4)),
+                  letterSpacing: 1.0)),
           const SizedBox(height: 12),
           _NavTile(
             label: 'Inbox',
@@ -142,7 +142,7 @@ class _SidebarPanel extends StatelessWidget {
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1.4)),
+                  letterSpacing: 1.0)),
           const SizedBox(height: 12),
           for (final list in taskLists)
             _NavTile(
@@ -270,7 +270,7 @@ class _TaskColumn extends StatelessWidget {
             maxLines: isMobile ? 2 : 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.0),
           ),
           const SizedBox(height: 20),
           Expanded(

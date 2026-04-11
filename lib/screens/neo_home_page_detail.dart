@@ -63,7 +63,7 @@ class _TaskCard extends StatelessWidget {
                       task.title,
                       style: TextStyle(
                         fontSize: 19,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w700,
                         height: 1.15,
                         decoration:
                             task.isDone ? TextDecoration.lineThrough : null,
@@ -222,7 +222,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                     style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 1.4)),
+                        letterSpacing: 1.0)),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _titleController,
@@ -266,7 +266,7 @@ class _DetailPanelState extends State<_DetailPanel> {
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: 1.4)),
+                            letterSpacing: 1.0)),
                     const Spacer(),
                     GestureDetector(
                       onTap: () => setState(() => _preview = !_preview),

@@ -27,6 +27,7 @@ class MyApp extends StatelessWidget {
       title: 'LiTasker',
       theme: ThemeData(
         useMaterial3: true,
+        fontFamily: 'Manrope',
         scaffoldBackgroundColor: NeoBrutalism.background,
         colorScheme: const ColorScheme.light(
           primary: NeoBrutalism.yellow,
@@ -93,7 +94,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   fontSize: 14,
                   color: NeoBrutalism.ink,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: 1.4,
+                  letterSpacing: 1.0,
                 ),
               ),
               const SizedBox(height: 48),
