@@ -2,7 +2,20 @@
 
 LiTasker 是一个本地优先的 Flutter 任务与专注管理应用。它把任务清单、日历规划、番茄/计时专注、学习统计和 JSON 备份放在同一个轻量应用里，视觉上保留了偏 neo-brutalism 的硬朗风格。
 
-![LiTasker Icon](lib/11a7da6ddae72513d88438305757b3ff.png)
+<p align="center">
+  <img src="lib/11a7da6ddae72513d88438305757b3ff.png" width="140" alt="LiTasker Icon" />
+</p>
+
+## 截图
+
+<p align="center">
+  <img src="docs/screenshots/focus.jpg" width="260" alt="Focus 页面" />
+  <img src="docs/screenshots/tasks.jpg" width="260" alt="任务页面" />
+  <img src="docs/screenshots/stats.jpg" width="260" alt="统计页面" />
+  <img src="docs/screenshots/日历.jpg" width="260" alt="日历页面" />
+</p>
+
+图片大小通过 `width` 控制，比如 `width="260"`。手机竖屏截图建议用 `220` 到 `300`，横向截图建议用 `720` 到 `900`。如果想让截图更大，把上面的 `260` 改成 `300`；如果一行放不下，就改成 `220`。
 
 ## 亮点
 
