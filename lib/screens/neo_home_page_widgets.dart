@@ -20,11 +20,15 @@ class _HeaderBar extends StatelessWidget {
     return Container(
       decoration: NeoBrutalism.card(color: NeoBrutalism.yellow),
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 18,
+        vertical: 16,
+      ),
       child: Row(
         children: [
           if (isMobile)
             IconButton(
+                visualDensity: VisualDensity.compact,
                 onPressed: onMenuPressed,
                 icon: const Icon(Icons.menu, color: NeoBrutalism.ink))
           else
@@ -35,9 +39,15 @@ class _HeaderBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('LITASKER',
-                    style:
-                        TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                Text(
+                  'LITASKER',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isMobile ? 24 : 28,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 Text(title,
                     style: const TextStyle(
                         fontSize: 12,
@@ -49,7 +59,10 @@ class _HeaderBar extends StatelessWidget {
           GestureDetector(
             onTap: onSwitchView,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 12 : 14,
+                vertical: 10,
+              ),
               decoration: NeoBrutalism.flatCard(
                   color: isCalendar ? NeoBrutalism.cyan : NeoBrutalism.paper),
               child: Text(isCalendar ? 'LIST' : 'CALENDAR',
