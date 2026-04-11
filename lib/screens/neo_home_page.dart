@@ -25,8 +25,12 @@ class NeoHomePage extends StatefulWidget {
 }
 
 class _NeoHomePageState extends State<NeoHomePage> {
+  static const _focusTotalSecondsKey = 'focus_total_seconds';
+  static const _focusCompletedSessionsKey = 'focus_completed_sessions';
+
   late final Box<Task> _taskBox;
   late final Box<TaskList> _listBox;
+  late final Box _settingsBox;
 
   List<Task> _tasks = [];
   List<TaskList> _taskLists = [];
@@ -50,6 +54,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
     super.initState();
     _taskBox = Hive.box<Task>('tasks');
     _listBox = Hive.box<TaskList>('taskLists');
+    _settingsBox = Hive.box('settings');
     _loadData();
   }
 
@@ -87,6 +92,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
         _listBox.put(list.id, list);
       }
     }
+    _completedFocusSessions = _readSettingInt(_focusCompletedSessionsKey);
     setState(() {});
   }
 
@@ -104,6 +110,50 @@ class _NeoHomePageState extends State<NeoHomePage> {
     if (a == null) return false;
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
+
+  String _focusDayKey(DateTime value) {
+    final date = _dateOnly(value);
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return 'focus_day_${date.year}-$month-$day';
+  }
+
+  int _readSettingInt(String key) {
+    final value = _settingsBox.get(key, defaultValue: 0);
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return 0;
+  }
+
+  void _writeSettingInt(String key, int value) {
+    unawaited(_settingsBox.put(key, value));
+  }
+
+  void _recordFocusSecond() {
+    final todayKey = _focusDayKey(DateTime.now());
+    _writeSettingInt(
+      _focusTotalSecondsKey,
+      _readSettingInt(_focusTotalSecondsKey) + 1,
+    );
+    _writeSettingInt(todayKey, _readSettingInt(todayKey) + 1);
+  }
+
+  void _recordFocusSession() {
+    _completedFocusSessions += 1;
+    _writeSettingInt(_focusCompletedSessionsKey, _completedFocusSessions);
+  }
+
+  List<int> get _focusLast7DaySeconds {
+    final today = _dateOnly(DateTime.now());
+    return List.generate(7, (index) {
+      final date = today.subtract(Duration(days: 6 - index));
+      return _readSettingInt(_focusDayKey(date));
+    });
+  }
+
+  int get _focusTodaySeconds => _readSettingInt(_focusDayKey(DateTime.now()));
+
+  int get _focusTotalSeconds => _readSettingInt(_focusTotalSecondsKey);
 
   List<Task> get _filteredTasks {
     final now = _dateOnly(DateTime.now());
@@ -252,18 +302,25 @@ class _NeoHomePageState extends State<NeoHomePage> {
       if (_usePomodoro) {
         if (_pomodoroRemaining <= const Duration(seconds: 1)) {
           setState(() {
-            _completedFocusSessions += 1;
+            _recordFocusSecond();
+            _recordFocusSession();
             _focusRunning = false;
             _pomodoroRemaining = const Duration(minutes: 25);
           });
           _focusTimer?.cancel();
           return;
         }
-        setState(() => _pomodoroRemaining -= const Duration(seconds: 1));
+        setState(() {
+          _recordFocusSecond();
+          _pomodoroRemaining -= const Duration(seconds: 1);
+        });
         return;
       }
 
-      setState(() => _focusElapsed += const Duration(seconds: 1));
+      setState(() {
+        _recordFocusSecond();
+        _focusElapsed += const Duration(seconds: 1);
+      });
     });
   }
 
@@ -282,7 +339,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
         : _focusElapsed > Duration.zero;
     _focusTimer?.cancel();
     setState(() {
-      if (hadProgress) _completedFocusSessions += 1;
+      if (hadProgress) _recordFocusSession();
       _focusRunning = false;
       _focusElapsed = Duration.zero;
       _pomodoroRemaining = const Duration(minutes: 25);
@@ -308,6 +365,15 @@ class _NeoHomePageState extends State<NeoHomePage> {
                 'colorValue': list.colorValue,
               })
           .toList(),
+      'focusStats': Map<String, int>.fromEntries(
+        _settingsBox.toMap().entries.where((entry) {
+          return entry.key is String &&
+              (entry.key as String).startsWith('focus_') &&
+              entry.value is num;
+        }).map((entry) {
+          return MapEntry(entry.key as String, (entry.value as num).toInt());
+        }),
+      ),
     };
 
     await File(file).writeAsString(jsonEncode(payload));
@@ -348,6 +414,20 @@ class _NeoHomePageState extends State<NeoHomePage> {
     for (final item in (data['tasks'] as List? ?? [])) {
       final task = Task.fromJson(item as Map<String, dynamic>);
       _taskBox.put(task.id, task);
+    }
+
+    final focusStats = data['focusStats'];
+    if (focusStats is Map<String, dynamic>) {
+      final focusKeys = _settingsBox.keys
+          .where((key) => key is String && key.startsWith('focus_'))
+          .toList();
+      for (final key in focusKeys) {
+        await _settingsBox.delete(key);
+      }
+      for (final entry in focusStats.entries) {
+        final value = entry.value;
+        if (value is num) await _settingsBox.put(entry.key, value.toInt());
+      }
     }
 
     _loadData();
@@ -436,6 +516,11 @@ class _NeoHomePageState extends State<NeoHomePage> {
     final isMobile = width < 720;
     final isDesktop = width > 1100;
     final title = _headerTitle();
+    final focusLast7DaySeconds = _focusLast7DaySeconds;
+    final focusWeekSeconds = focusLast7DaySeconds.fold<int>(
+      0,
+      (total, seconds) => total + seconds,
+    );
     final headerActionLabel = switch (_viewMode) {
       ViewMode.focus => 'TASKS',
       ViewMode.list => 'CALENDAR',
@@ -522,6 +607,10 @@ class _NeoHomePageState extends State<NeoHomePage> {
                             isRunning: _focusRunning,
                             usePomodoro: _usePomodoro,
                             completedSessions: _completedFocusSessions,
+                            totalFocusSeconds: _focusTotalSeconds,
+                            todayFocusSeconds: _focusTodaySeconds,
+                            weekFocusSeconds: focusWeekSeconds,
+                            last7DaySeconds: focusLast7DaySeconds,
                             onToggleTimer: _toggleFocusTimer,
                             onEndSession: _endFocusSession,
                             onToggleMode: _toggleFocusMode,

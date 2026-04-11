@@ -14,6 +14,7 @@ void main() async {
   Hive.registerAdapter(TaskListAdapter());
   await Hive.openBox<Task>('tasks');
   await Hive.openBox<TaskList>('taskLists');
+  await Hive.openBox('settings');
   runApp(const MyApp());
 }
 
@@ -75,7 +76,8 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 148,
                 height: 148,
                 decoration: NeoBrutalism.card(color: NeoBrutalism.yellow),
-                child: const Icon(Icons.task_alt, size: 72, color: NeoBrutalism.ink),
+                child: const Icon(Icons.task_alt,
+                    size: 72, color: NeoBrutalism.ink),
               ),
               const SizedBox(height: 24),
               const Text(

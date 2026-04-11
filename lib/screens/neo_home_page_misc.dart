@@ -23,6 +23,10 @@ class _FocusPanel extends StatelessWidget {
     required this.isRunning,
     required this.usePomodoro,
     required this.completedSessions,
+    required this.totalFocusSeconds,
+    required this.todayFocusSeconds,
+    required this.weekFocusSeconds,
+    required this.last7DaySeconds,
     required this.onToggleTimer,
     required this.onEndSession,
     required this.onToggleMode,
@@ -32,6 +36,10 @@ class _FocusPanel extends StatelessWidget {
   final bool isRunning;
   final bool usePomodoro;
   final int completedSessions;
+  final int totalFocusSeconds;
+  final int todayFocusSeconds;
+  final int weekFocusSeconds;
+  final List<int> last7DaySeconds;
   final VoidCallback onToggleTimer;
   final VoidCallback onEndSession;
   final VoidCallback onToggleMode;
@@ -110,20 +118,13 @@ class _FocusPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child:
-                    _FocusStat(label: 'SESSION', value: '#$completedSessions'),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _FocusStat(
-                  label: 'MODE',
-                  value: usePomodoro ? 'POMO' : 'TIME',
-                ),
-              ),
-            ],
+          _FocusStatsPanel(
+            totalSeconds: totalFocusSeconds,
+            todaySeconds: todayFocusSeconds,
+            weekSeconds: weekFocusSeconds,
+            sessions: completedSessions,
+            mode: usePomodoro ? 'POMO' : 'TIME',
+            last7DaySeconds: last7DaySeconds,
           ),
         ],
       ),
@@ -312,6 +313,156 @@ class _FocusActionButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FocusStatsPanel extends StatelessWidget {
+  const _FocusStatsPanel({
+    required this.totalSeconds,
+    required this.todaySeconds,
+    required this.weekSeconds,
+    required this.sessions,
+    required this.mode,
+    required this.last7DaySeconds,
+  });
+
+  final int totalSeconds;
+  final int todaySeconds;
+  final int weekSeconds;
+  final int sessions;
+  final String mode;
+  final List<int> last7DaySeconds;
+
+  String _studyTimeLabel(int seconds) {
+    final duration = Duration(seconds: seconds);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    if (hours == 0) return '${minutes}M';
+    return '${hours}H ${minutes.toString().padLeft(2, '0')}M';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final maxSeconds = last7DaySeconds.fold<int>(
+      1,
+      (maxValue, seconds) => seconds > maxValue ? seconds : maxValue,
+    );
+
+    return Container(
+      width: double.infinity,
+      decoration: NeoBrutalism.card(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text('STUDY STATS', style: NeoBrutalism.label)),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: NeoBrutalism.flatCard(color: NeoBrutalism.yellow),
+                child: Text(mode, style: NeoBrutalism.label),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.yellow),
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('TOTAL FOCUS TIME', style: NeoBrutalism.label),
+                const SizedBox(height: 8),
+                Text(
+                  _studyTimeLabel(totalSeconds),
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.4,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _FocusStat(
+                  label: 'TODAY',
+                  value: _studyTimeLabel(todaySeconds),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FocusStat(
+                  label: '7 DAYS',
+                  value: _studyTimeLabel(weekSeconds),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _FocusStat(label: 'SESSIONS', value: '#$sessions'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text('LAST 7 DAYS', style: NeoBrutalism.label),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 92,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(last7DaySeconds.length, (index) {
+                final seconds = last7DaySeconds[index];
+                final heightFactor = (seconds / maxSeconds).clamp(0.08, 1.0);
+                final isToday = index == last7DaySeconds.length - 1;
+
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: index == 0 ? 0 : 4,
+                      right: index == last7DaySeconds.length - 1 ? 0 : 4,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: heightFactor,
+                              widthFactor: 1,
+                              alignment: Alignment.bottomCenter,
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 260),
+                                curve: Curves.easeOutCubic,
+                                decoration: NeoBrutalism.flatCard(
+                                  color: isToday
+                                      ? NeoBrutalism.yellow
+                                      : NeoBrutalism.cyan,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(isToday ? 'TOD' : '${index + 1}',
+                            style: NeoBrutalism.label),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
