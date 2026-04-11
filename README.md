@@ -1,58 +1,41 @@
 # LiTasker
 
-LiTasker is a local-first Flutter task manager with a bold neo-brutalism interface. It focuses on fast task capture, practical list organization, calendar-based planning, and simple backup/export workflows.
-
-LiTasker 是一个本地优先的 Flutter 任务管理应用，采用鲜明的 neo-brutalism 视觉风格，强调快速记录任务、清晰组织列表、用日历安排事项，以及简单直接的数据备份与恢复。
+LiTasker 是一个本地优先的 Flutter 任务与专注管理应用。它把任务清单、日历规划、番茄/计时专注、学习统计和 JSON 备份放在同一个轻量应用里，视觉上保留了偏 neo-brutalism 的硬朗风格。
 
 ![LiTasker Icon](lib/11a7da6ddae72513d88438305757b3ff.png)
 
-## Overview
+## 亮点
 
-- Built with Flutter and Dart
-- Stores data locally with Hive
-- Supports task lists, smart views, and calendar browsing
-- Includes JSON import/export for backup and migration
-- Designed around a distinctive desktop-and-mobile friendly UI
+- 本地优先：任务、清单、设置和专注统计保存在本机，不依赖服务端。
+- 专注首页：打开应用默认进入 Focus，可以在普通计时和番茄模式之间切换。
+- 学习统计：支持按日、周、月查看专注数据，并按科目筛选统计。
+- 任务管理：支持收件箱、今天、未来 7 天、已完成、自定义清单、优先级和备注。
+- 日历视图：支持月、周、日视图，方便按日期查看和安排任务。
+- 快速添加：支持优先级、日期、清单选择，并可批量生成每日/每周重复任务。
+- 搜索与排序：任务页支持搜索标题/备注，并按日期、优先级或标题排序。
+- 数据备份：支持 JSON 导入导出，并在导入时做基础格式校验。
+- 设置中心：可调整专注时长、休息时长、今日目标、默认首页、备份提醒和减少动效。
 
-## 项目简介
+## 功能概览
 
-- 使用 Flutter 与 Dart 构建
-- 基于 Hive 进行本地数据持久化
-- 支持任务列表、智能视图和日历浏览
-- 提供 JSON 导入导出，方便备份与迁移
-- 保留了鲜明的 neo-brutalism 风格，兼顾桌面端与移动端体验
+| 模块 | 说明 |
+| --- | --- |
+| Focus | 计时、番茄、开始/结束专注、当前科目、今日进度条 |
+| Stats | 总专注时长、今日目标、连续天数、平均时长、科目分布、趋势图 |
+| Tasks | 智能视图、自定义清单、搜索、排序、快速添加、完成/删除/移动任务 |
+| Calendar | 月/周/日视图，按日期查看任务 |
+| Settings | 专注参数、任务默认行为、备份提醒、导入导出、清空本地数据 |
 
-## Features
+## 技术栈
 
-- Local-first task storage with no required backend
-- Smart views such as Inbox, Today, and Next 7 Days
-- Custom task lists with icon and color settings
-- Task priority, completion state, and detail editing
-- Calendar mode for planning and reviewing tasks
-- Quick-add flow for faster task entry
-- JSON backup import/export using a file picker
-
-## 功能特性
-
-- 本地优先，无需后端即可使用
-- 提供 Inbox、Today、Next 7 Days 等智能视图
-- 支持自定义任务列表、图标和颜色
-- 支持任务优先级、完成状态和详情编辑
-- 提供日历模式，便于按时间查看和安排任务
-- 支持快速新增任务
-- 支持通过文件选择器导入导出 JSON 备份
-
-## Tech Stack
-
-- Flutter
-- Dart
+- Flutter / Dart
 - Hive / hive_flutter
 - file_picker
 - flutter_markdown
 - shared_preferences
-- lucide_icons
+- flutter_launcher_icons
 
-## Project Structure
+## 项目结构
 
 ```text
 lib/
@@ -74,76 +57,71 @@ lib/
     priority_color.dart
 ```
 
-## App Flow
+## 本地运行
 
-1. Launch the app.
-2. Create or select a list.
-3. Add a task with title, detail, date, and priority.
-4. Switch between smart views and calendar view.
-5. Export data to JSON when you want a backup.
-
-## 使用流程
-
-1. 启动应用。
-2. 创建或选择任务列表。
-3. 新增任务，并填写标题、详情、日期和优先级。
-4. 在智能视图和日历视图之间切换查看任务。
-5. 需要备份时导出为 JSON 文件。
-
-## Getting Started
-
-### Prerequisites
-
-- Flutter SDK
-- A supported IDE such as VS Code or Android Studio
-- A simulator, emulator, or physical device
-
-### Install dependencies
+安装依赖：
 
 ```bash
 flutter pub get
 ```
 
-### Run the app
+运行应用：
 
 ```bash
 flutter run
 ```
 
-### Regenerate Hive adapters
+运行分析和测试：
 
-Run this if the model fields change:
+```bash
+flutter analyze
+flutter test
+```
+
+生成 debug APK：
+
+```bash
+flutter build apk --debug
+```
+
+生成位置：
+
+```text
+build/app/outputs/flutter-apk/app-debug.apk
+```
+
+## 数据说明
+
+LiTasker 当前不需要后端服务，核心数据会保存在本机：
+
+- `tasks`：任务数据
+- `taskLists`：清单数据
+- `settings`：设置、专注统计、备份状态等
+
+如果要迁移数据，可以在设置页导出 JSON 备份，再在另一台设备上导入。
+
+## 开发说明
+
+如果修改了 Hive model 字段，需要重新生成 adapter：
 
 ```bash
 flutter pub run build_runner build --delete-conflicting-outputs
 ```
 
-### Regenerate launcher icons
-
-Launcher icons are configured in `pubspec.yaml`:
+如果修改了应用图标配置，可以重新生成 launcher icons：
 
 ```bash
 flutter pub run flutter_launcher_icons
 ```
 
-## Data Storage
+## Roadmap
 
-- Hive box `tasks`: stores task records
-- Hive box `taskLists`: stores custom list metadata
-
-All task data stays on-device unless you explicitly export it.
-
-## Repository Status
-
-The project is currently maintained as a single Flutter app with modularized screen files under `lib/screens`. The current codebase is intended to be runnable and analyzable as-is.
-
-## Roadmap Ideas
-
-- Better recurring task support
-- Improved backup preview and conflict handling
-- More polished onboarding and empty states
-- Additional desktop interaction refinements
+- 加强重复任务：从“批量生成”升级为真正的重复规则。
+- 加提醒通知：为任务和专注结束加入本地通知。
+- 优化备份体验：导入前预览、冲突处理、自动备份提醒。
+- 补充截图/GIF：让 GitHub 首页更直观看到实际界面。
+- 完善测试：增加任务搜索、排序、专注计时和导入导出的覆盖。
 
 ## License
 
-No license file is included yet. Add one before public distribution if needed.
+当前仓库还没有添加 License。正式公开分发前，建议补充一个明确的开源协议。
