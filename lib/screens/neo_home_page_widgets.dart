@@ -7,6 +7,7 @@ class _HeaderBar extends StatelessWidget {
     required this.onMenuPressed,
     required this.onSwitchView,
     required this.isCalendar,
+    required this.actionLabel,
   });
 
   final String title;
@@ -14,6 +15,7 @@ class _HeaderBar extends StatelessWidget {
   final VoidCallback? onMenuPressed;
   final VoidCallback onSwitchView;
   final bool isCalendar;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +67,7 @@ class _HeaderBar extends StatelessWidget {
               ),
               decoration: NeoBrutalism.flatCard(
                   color: isCalendar ? NeoBrutalism.cyan : NeoBrutalism.paper),
-              child: Text(isCalendar ? 'LIST' : 'CALENDAR',
-                  style: NeoBrutalism.label),
+              child: Text(actionLabel, style: NeoBrutalism.label),
             ),
           ),
         ],

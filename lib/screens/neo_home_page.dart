@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -33,10 +34,17 @@ class _NeoHomePageState extends State<NeoHomePage> {
   SmartView? _selectedSmartView = SmartView.today;
   String? _selectedListId;
   bool _showCompleted = false;
-  ViewMode _viewMode = ViewMode.list;
+  ViewMode _viewMode = ViewMode.focus;
   DateTime _selectedDate = DateTime.now();
   CalendarViewMode _calendarViewMode = CalendarViewMode.month;
   bool _fabPressed = false;
+  DateTime _now = DateTime.now();
+  Duration _focusRemaining = const Duration(minutes: 25);
+  bool _focusRunning = false;
+  bool _isBreakSession = false;
+  int _completedFocusSessions = 0;
+  Timer? _clockTimer;
+  Timer? _focusTimer;
 
   @override
   void initState() {
@@ -44,6 +52,16 @@ class _NeoHomePageState extends State<NeoHomePage> {
     _taskBox = Hive.box<Task>('tasks');
     _listBox = Hive.box<TaskList>('taskLists');
     _loadData();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    _focusTimer?.cancel();
+    super.dispose();
   }
 
   void _loadData() {
@@ -82,6 +100,18 @@ class _NeoHomePageState extends State<NeoHomePage> {
       if (task.id == _selectedTaskId) return task;
     }
     return null;
+  }
+
+  Task? get _focusTask {
+    if (_selectedTask != null && !_selectedTask!.isDone) return _selectedTask;
+    final today = _tasks
+        .where((task) => !task.isDone && _sameDate(task.date, DateTime.now()))
+        .toList();
+    if (today.isNotEmpty) return today.first;
+    return _tasks.cast<Task?>().firstWhere(
+          (task) => task != null && !task.isDone,
+          orElse: () => null,
+        );
   }
 
   DateTime _dateOnly(DateTime value) =>
@@ -229,6 +259,42 @@ class _NeoHomePageState extends State<NeoHomePage> {
     });
   }
 
+  void _toggleFocusTimer() {
+    if (_focusRunning) {
+      _focusTimer?.cancel();
+      setState(() => _focusRunning = false);
+      return;
+    }
+
+    setState(() => _focusRunning = true);
+    _focusTimer?.cancel();
+    _focusTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_focusRemaining <= const Duration(seconds: 1)) {
+        setState(() {
+          if (!_isBreakSession) _completedFocusSessions += 1;
+          _isBreakSession = !_isBreakSession;
+          _focusRemaining = _isBreakSession
+              ? const Duration(minutes: 5)
+              : const Duration(minutes: 25);
+          _focusRunning = false;
+        });
+        _focusTimer?.cancel();
+        return;
+      }
+      setState(() => _focusRemaining -= const Duration(seconds: 1));
+    });
+  }
+
+  void _endFocusSession() {
+    _focusTimer?.cancel();
+    setState(() {
+      _focusRunning = false;
+      _isBreakSession = false;
+      _focusRemaining = const Duration(minutes: 25);
+    });
+  }
+
   Future<void> _exportData() async {
     final file = await FilePicker.platform.saveFile(
       dialogTitle: 'Export backup',
@@ -352,6 +418,7 @@ class _NeoHomePageState extends State<NeoHomePage> {
   }
 
   String _headerTitle() {
+    if (_viewMode == ViewMode.focus) return 'Focus';
     if (_viewMode == ViewMode.calendar) return 'Calendar';
     if (_showCompleted) return 'Completed';
     if (_selectedListId != null) {
@@ -375,6 +442,11 @@ class _NeoHomePageState extends State<NeoHomePage> {
     final isMobile = width < 720;
     final isDesktop = width > 1100;
     final title = _headerTitle();
+    final headerActionLabel = switch (_viewMode) {
+      ViewMode.focus => 'TASKS',
+      ViewMode.list => 'CALENDAR',
+      ViewMode.calendar => 'LIST',
+    };
 
     return Scaffold(
       drawer: isMobile
@@ -410,12 +482,15 @@ class _NeoHomePageState extends State<NeoHomePage> {
                     isMobile ? () => Scaffold.of(context).openDrawer() : null,
                 onSwitchView: () {
                   setState(() {
-                    _viewMode = _viewMode == ViewMode.list
-                        ? ViewMode.calendar
-                        : ViewMode.list;
+                    _viewMode = switch (_viewMode) {
+                      ViewMode.focus => ViewMode.list,
+                      ViewMode.list => ViewMode.calendar,
+                      ViewMode.calendar => ViewMode.list,
+                    };
                   });
                 },
                 isCalendar: _viewMode == ViewMode.calendar,
+                actionLabel: headerActionLabel,
               ),
             ),
             Expanded(
@@ -445,44 +520,57 @@ class _NeoHomePageState extends State<NeoHomePage> {
                     ),
                   if (!isMobile) Container(width: 2, color: NeoBrutalism.ink),
                   Expanded(
-                    child: _viewMode == ViewMode.list
-                        ? _TaskColumn(
-                            title: title,
-                            tasks: _filteredTasks,
-                            taskLists: _taskLists,
-                            selectedTaskId: _selectedTaskId,
-                            isMobile: isMobile,
-                            onSelectTask: (id) {
-                              final task =
-                                  _tasks.firstWhere((item) => item.id == id);
-                              _openTaskDetails(task, isMobile: isMobile);
-                            },
-                            onToggleDone: _toggleDone,
-                            onMoveTask: _moveTaskTo,
-                            onDeleteTask: _deleteTask,
+                    child: _viewMode == ViewMode.focus
+                        ? _FocusPanel(
+                            now: _now,
+                            remaining: _focusRemaining,
+                            isRunning: _focusRunning,
+                            isBreakSession: _isBreakSession,
+                            completedSessions: _completedFocusSessions,
+                            currentTask: _focusTask,
+                            onToggleTimer: _toggleFocusTimer,
+                            onEndSession: _endFocusSession,
+                            onOpenTasks: () =>
+                                setState(() => _viewMode = ViewMode.list),
                           )
-                        : _CalendarPanel(
-                            selectedDate: _selectedDate,
-                            tasks: _tasks,
-                            mode: _calendarViewMode,
-                            isMobile: isMobile,
-                            onModeChanged: (mode) =>
-                                setState(() => _calendarViewMode = mode),
-                            onDateSelected: (date) =>
-                                setState(() => _selectedDate = date),
-                            onTaskSelected: (id) {
-                              final task =
-                                  _tasks.firstWhere((item) => item.id == id);
-                              if (isMobile) {
-                                _openTaskDetails(task, isMobile: true);
-                              } else {
-                                setState(() {
-                                  _selectedTaskId = id;
-                                  _viewMode = ViewMode.list;
-                                });
-                              }
-                            },
-                          ),
+                        : _viewMode == ViewMode.list
+                            ? _TaskColumn(
+                                title: title,
+                                tasks: _filteredTasks,
+                                taskLists: _taskLists,
+                                selectedTaskId: _selectedTaskId,
+                                isMobile: isMobile,
+                                onSelectTask: (id) {
+                                  final task = _tasks
+                                      .firstWhere((item) => item.id == id);
+                                  _openTaskDetails(task, isMobile: isMobile);
+                                },
+                                onToggleDone: _toggleDone,
+                                onMoveTask: _moveTaskTo,
+                                onDeleteTask: _deleteTask,
+                              )
+                            : _CalendarPanel(
+                                selectedDate: _selectedDate,
+                                tasks: _tasks,
+                                mode: _calendarViewMode,
+                                isMobile: isMobile,
+                                onModeChanged: (mode) =>
+                                    setState(() => _calendarViewMode = mode),
+                                onDateSelected: (date) =>
+                                    setState(() => _selectedDate = date),
+                                onTaskSelected: (id) {
+                                  final task = _tasks
+                                      .firstWhere((item) => item.id == id);
+                                  if (isMobile) {
+                                    _openTaskDetails(task, isMobile: true);
+                                  } else {
+                                    setState(() {
+                                      _selectedTaskId = id;
+                                      _viewMode = ViewMode.list;
+                                    });
+                                  }
+                                },
+                              ),
                   ),
                   if (isDesktop &&
                       _viewMode == ViewMode.list &&

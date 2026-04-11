@@ -17,6 +17,313 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
+class _FocusPanel extends StatelessWidget {
+  const _FocusPanel({
+    required this.now,
+    required this.remaining,
+    required this.isRunning,
+    required this.isBreakSession,
+    required this.completedSessions,
+    required this.currentTask,
+    required this.onToggleTimer,
+    required this.onEndSession,
+    required this.onOpenTasks,
+  });
+
+  final DateTime now;
+  final Duration remaining;
+  final bool isRunning;
+  final bool isBreakSession;
+  final int completedSessions;
+  final Task? currentTask;
+  final VoidCallback onToggleTimer;
+  final VoidCallback onEndSession;
+  final VoidCallback onOpenTasks;
+
+  String _timeLabel(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _durationLabel(Duration value) {
+    final minutes = value.inMinutes.toString().padLeft(2, '0');
+    final seconds = (value.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalSeconds = (isBreakSession ? 5 : 25) * 60;
+    final elapsed = totalSeconds - remaining.inSeconds;
+    final progress = (elapsed / totalSeconds).clamp(0.0, 1.0);
+    final status = isBreakSession ? 'BREAK' : 'FOCUS';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 120),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: _FocusInfoBlock(
+                  label: 'STATUS',
+                  value: isRunning ? status : 'PAUSED',
+                ),
+              ),
+              const SizedBox(width: 20),
+              _FocusInfoBlock(
+                label: 'LOCAL TIME',
+                value: _timeLabel(now),
+                alignRight: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 34),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 42),
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+            child: Column(
+              children: [
+                Text(
+                  _timeLabel(now),
+                  style: const TextStyle(
+                    fontSize: 68,
+                    fontWeight: FontWeight.w900,
+                    height: 0.9,
+                    letterSpacing: -3,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  _durationLabel(remaining),
+                  style: const TextStyle(
+                    fontSize: 44,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    letterSpacing: -1.4,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(status, style: NeoBrutalism.label),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            height: 18,
+            width: double.infinity,
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: progress,
+              child: Container(color: NeoBrutalism.yellow),
+            ),
+          ),
+          const SizedBox(height: 28),
+          _CurrentObjectiveCard(
+            task: currentTask,
+            onOpenTasks: onOpenTasks,
+          ),
+          const SizedBox(height: 38),
+          SizedBox(
+            width: 300,
+            child: Column(
+              children: [
+                _FocusActionButton(
+                  label: isRunning ? 'PAUSE' : 'START',
+                  icon: isRunning ? Icons.pause : Icons.play_arrow,
+                  color: NeoBrutalism.paper,
+                  onTap: onToggleTimer,
+                ),
+                const SizedBox(height: 20),
+                _FocusActionButton(
+                  label: 'END\nSESSION',
+                  icon: Icons.stop,
+                  color: NeoBrutalism.yellow,
+                  onTap: onEndSession,
+                  isTall: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 40),
+          Row(
+            children: [
+              Expanded(
+                child:
+                    _FocusStat(label: 'SESSION', value: '#$completedSessions'),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _FocusStat(
+                  label: 'MODE',
+                  value: isBreakSession ? 'REST' : 'WORK',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusInfoBlock extends StatelessWidget {
+  const _FocusInfoBlock({
+    required this.label,
+    required this.value,
+    this.alignRight = false,
+  });
+
+  final String label;
+  final String value;
+  final bool alignRight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment:
+          alignRight ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Text(label, style: NeoBrutalism.label),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+        ),
+      ],
+    );
+  }
+}
+
+class _CurrentObjectiveCard extends StatelessWidget {
+  const _CurrentObjectiveCard({
+    required this.task,
+    required this.onOpenTasks,
+  });
+
+  final Task? task;
+  final VoidCallback onOpenTasks;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: NeoBrutalism.flatCard(color: NeoBrutalism.yellow),
+            child: const Icon(Icons.format_list_bulleted,
+                size: 19, color: NeoBrutalism.ink),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('CURRENT OBJECTIVE', style: NeoBrutalism.label),
+                const SizedBox(height: 6),
+                Text(
+                  task?.title ?? 'No task selected',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    height: 1.15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: onOpenTasks,
+            icon: const Icon(Icons.edit, color: NeoBrutalism.ink),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusActionButton extends StatelessWidget {
+  const _FocusActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.isTall = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final bool isTall;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: isTall ? 78 : 58,
+        width: double.infinity,
+        decoration: NeoBrutalism.card(color: color),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 22, color: NeoBrutalism.ink),
+            const SizedBox(width: 20),
+            Text(
+              label,
+              textAlign: TextAlign.left,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.8,
+                height: 1.25,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusStat extends StatelessWidget {
+  const _FocusStat({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: NeoBrutalism.flatCard(color: NeoBrutalism.paper),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: NeoBrutalism.label),
+          const SizedBox(height: 6),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.currentView, required this.onChange});
 
@@ -38,12 +345,20 @@ class _BottomNav extends StatelessWidget {
         children: [
           Expanded(
             child: _BottomNavItem(
-              label: 'LIST',
+              label: 'FOCUS',
+              selected: currentView == ViewMode.focus,
+              onTap: () => onChange(ViewMode.focus),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _BottomNavItem(
+              label: 'TASKS',
               selected: currentView == ViewMode.list,
               onTap: () => onChange(ViewMode.list),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: _BottomNavItem(
               label: 'CALENDAR',
