@@ -136,4 +136,4 @@ flutter pub run flutter_launcher_icons
 
 ## License
 
-当前仓库还没有添加 License。正式公开分发前，建议补充一个明确的开源协议。
+还没有，谢谢
