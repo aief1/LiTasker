@@ -126,14 +126,6 @@ flutter pub run build_runner build --delete-conflicting-outputs
 flutter pub run flutter_launcher_icons
 ```
 
-## Roadmap
-
-- 加强重复任务：从“批量生成”升级为真正的重复规则。
-- 加提醒通知：为任务和专注结束加入本地通知。
-- 优化备份体验：导入前预览、冲突处理、自动备份提醒。
-- 补充截图/GIF：让 GitHub 首页更直观看到实际界面。
-- 完善测试：增加任务搜索、排序、专注计时和导入导出的覆盖。
-
 ## License
 
 还没有，谢谢
